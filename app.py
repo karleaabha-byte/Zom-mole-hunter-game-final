@@ -7,7 +7,7 @@ from game import GameState, ROOMS
 
 # ============================================================
 # PAGE CONFIG
-# ============================================================
+# =============================================================
 
 st.set_page_config(
     page_title="Zom-Mole Hunter",
@@ -573,23 +573,6 @@ game = st.session_state.game
 
 
 # ============================================================
-# ROOM DESCRIPTIONS
-# IMPORTANT: DEFINE THIS BEFORE IT IS USED ANYWHERE.
-# ============================================================
-
-room_descriptions = {
-    "Laboratory":
-        "The centrifuge room where the incident began.",
-
-    "Storage":
-        "Shelves, the ventilation system and a strange riddle.",
-
-    "Cafeteria":
-        "A vending machine, a restocking cart and one suspicious receipt.",
-}
-
-
-# ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 
@@ -673,16 +656,11 @@ def statement_count():
 def clean_case_log():
 
     """
-    Removes player-facing references to internal mechanics.
-
-    The player should NEVER see:
-    - 50/50 mechanics
+    Removes player-facing references to:
+    - internal 50/50 mechanics
     - random/chance mechanics
-    - probability/roll information
-    - the BREEZE answer
-    - messages saying BREEZE unlocks another clue
-    - storage-answer mechanics
-    - internal storage discovery messages
+    - the actual BREEZE answer
+    - messages that reveal the storage riddle answer
     """
 
     hidden_terms = (
@@ -696,14 +674,6 @@ def clean_case_log():
         "solve breeze",
         "breeze",
         "storage riddle discovered",
-        "storage answer",
-        "riddle answer",
-        "correct code",
-        "code correct",
-        "pin correct",
-        "pin cracked",
-        "security word",
-        "wordle",
     )
 
     cleaned = []
@@ -983,9 +953,11 @@ def render_clue(
             )
 
         # IMPORTANT:
-        # Do NOT reveal what solving the riddle
-        # discovers. The player must infer its
-        # significance from the evidence.
+        # Storage CODE CORRECT / EVIDENCE FOUND
+        # is NOT displayed here.
+        #
+        # It is displayed only once in the
+        # Crime Scenes section below.
 
         if clue.get("note"):
 
@@ -1038,46 +1010,6 @@ def render_clue(
             st.write(
                 clue["description"]
             )
-
-
-# ============================================================
-# INTERNAL LOG CLEANUP
-# ============================================================
-
-def clean_internal_log():
-
-    if not hasattr(game, "log"):
-        return
-
-    hidden_terms = (
-        "50/50",
-        "50-50",
-        "50–50",
-        "random",
-        "chance",
-        "probability",
-        "roll",
-        "solve breeze",
-        "breeze",
-        "storage riddle discovered",
-        "storage answer",
-        "riddle answer",
-        "correct code",
-        "code correct",
-        "pin correct",
-        "pin cracked",
-        "security word",
-        "wordle",
-    )
-
-    game.log = [
-        entry
-        for entry in game.log
-        if not any(
-            term in str(entry).lower()
-            for term in hidden_terms
-        )
-    ]
 
 
 # ============================================================
@@ -1273,24 +1205,9 @@ st.title(
     "🧟 ZOM-MOLE HUNTER"
 )
 
-st.markdown(
-    f"""
-    <div style="
-        height: 48px;
-        color: rgba(255,255,255,0.65);
-        font-size: 14px;
-        line-height: 1.5;
-        margin-bottom: 8px;
-    ">
-        {safe_html(
-            room_descriptions.get(
-                getattr(game, "current_room", ""),
-                "A location inside the facility."
-            )
-        )}
-    </div>
-    """,
-    unsafe_allow_html=True,
+st.caption(
+    f"Detective Case File: "
+    f"{st.session_state.detective_name}"
 )
 
 
@@ -1569,6 +1486,19 @@ with tab_rooms:
         "whatever evidence you can find."
     )
 
+    room_descriptions = {
+
+        "Laboratory":
+            "The centrifuge room where the incident began.",
+
+        "Storage":
+            "Shelves, the ventilation system and a strange riddle.",
+
+        "Cafeteria":
+            "A vending machine, a restocking cart "
+            "and one suspicious receipt.",
+    }
+
     cols = st.columns(
         len(ROOMS)
     )
@@ -1581,7 +1511,7 @@ with tab_rooms:
         with col:
 
             st.markdown(
-                f"### {safe_html(room)}"
+                f"### {room}"
             )
 
             st.caption(
@@ -1641,23 +1571,46 @@ with tab_rooms:
                         )
 
                         # -----------------------------------------
-                        # CORRECT
+                        # CORRECT CODE
                         # -----------------------------------------
 
                         if success:
 
+                            # game.py decides whether the hidden Storage
+                            # evidence exists. Do not overwrite that result.
                             game.storage_riddle_solved = True
 
                             st.session_state.storage_code_result = (
                                 "correct"
                             )
 
-                            clean_internal_log()
+                            # Remove hidden/internal messages
+                            # from the actual game log.
+                            if hasattr(game, "log"):
+
+                                game.log = [
+                                    entry
+                                    for entry in game.log
+                                    if not any(
+                                        term in str(entry).lower()
+                                        for term in (
+                                            "50/50",
+                                            "50-50",
+                                            "50–50",
+                                            "random",
+                                            "chance",
+                                            "probability",
+                                            "roll",
+                                            "solve breeze",
+                                            "breeze",
+                                            "storage riddle discovered",
+                                        )
+                                    )]
 
                             st.rerun()
 
                         # -----------------------------------------
-                        # INCORRECT
+                        # INCORRECT CODE
                         # -----------------------------------------
 
                         else:
@@ -1669,11 +1622,8 @@ with tab_rooms:
                             st.rerun()
 
                 # =================================================
-                # STORAGE RESULT
-                #
-                # Do NOT reveal the actual evidence here.
-                # The solved riddle should simply become another
-                # piece of evidence for the detective to interpret.
+                # STORAGE RESULT DISPLAY
+                # ONLY ONE DISPLAY LOCATION
                 # =================================================
 
                 if (
@@ -1683,14 +1633,15 @@ with tab_rooms:
                 ):
 
                     st.success(
-                        "✓ RIDDLE SOLVED"
+                        "✓ CODE CORRECT"
                     )
 
-                    st.info(
-                        "The terminal accepts the entry. "
-                        "Whatever was hidden behind the corrupted "
-                        "record is now part of the case file."
-                    )
+                    if game.storage_evidence_found:
+                        st.info(
+                            "🔎 Storage evidence FOUND. "
+                            "A ventilation override was recorded "
+                            "at 11:50 PM."
+                        )
 
                 elif (
                     room == "Storage"
@@ -1699,7 +1650,7 @@ with tab_rooms:
                 ):
 
                     st.error(
-                        "✗ INCORRECT ENTRY"
+                        "✗ CODE INCORRECT"
                     )
 
                 # =================================================
@@ -1716,6 +1667,7 @@ with tab_rooms:
 
                     # ------------------------------------------------
                     # PIN RESULT
+                    # DISPLAYED ONLY ONCE
                     # ------------------------------------------------
 
                     if (
@@ -1727,8 +1679,18 @@ with tab_rooms:
                             "✗ PIN INCORRECT"
                         )
 
+                    elif (
+                        st.session_state.pin_result
+                        == "correct"
+                        and game.pin_cracked
+                    ):
+
+                        st.success(
+                            "✓ PIN CORRECT — PIN CRACKED"
+                        )
+
                     # ------------------------------------------------
-                    # PIN CRACKED
+                    # PIN ALREADY CRACKED
                     # ------------------------------------------------
 
                     if game.pin_cracked:
@@ -1752,13 +1714,14 @@ with tab_rooms:
                                     </div>
 
                                     <p>
-                                        The restricted system is requesting
-                                        an additional verification step.
+                                        Restricted employee access has
+                                        triggered a secondary security
+                                        protocol.
                                     </p>
 
                                     <p>
                                         <b>
-                                            Further access is currently locked.
+                                            Interrogation access remains locked.
                                         </b>
                                     </p>
 
@@ -1781,14 +1744,22 @@ with tab_rooms:
                                     </div>
 
                                     <p>
-                                        The restricted employee records
-                                        are now accessible.
+                                        The employee record linked to
+                                        the restocking log has been
+                                        unlocked.
                                     </p>
 
                                     <p>
-                                        The recovered record can be
-                                        compared against the physical
-                                        evidence and witness statements.
+                                        <b>ACCESS RECORD:</b>
+                                        The restocking cycle was initiated
+                                        using an authorized employee
+                                        credential.
+                                    </p>
+
+                                    <p>
+                                        The system confirms that the
+                                        credential belonged to an employee
+                                        scheduled for the night shift.
                                     </p>
 
                                     <p>
@@ -1837,8 +1808,6 @@ with tab_rooms:
                                     "incorrect"
                                 )
 
-                            clean_internal_log()
-
                             st.rerun()
 
                         st.caption(
@@ -1864,8 +1833,6 @@ with tab_rooms:
                     )
 
                     if success:
-
-                        clean_internal_log()
 
                         st.rerun()
 
@@ -1922,7 +1889,7 @@ with tab_people:
         )
 
     # ========================================================
-    # SECURITY CHALLENGE
+    # ZEPHYR SECURITY SABOTAGE
     # ========================================================
 
     elif game.security_challenge_active:
@@ -1976,6 +1943,10 @@ with tab_people:
             """
         )
 
+        # ====================================================
+        # CHALLENGE STATUS
+        # ====================================================
+
         st.metric(
             "ATTEMPTS REMAINING",
             attempts_remaining
@@ -1998,28 +1969,18 @@ with tab_people:
 
                 # Green first
                 for index, letter in enumerate(attempt):
-
-                    if (
-                        index < len(game.wordle_answer)
-                        and letter == game.wordle_answer[index]
-                    ):
-
+                    if letter == game.wordle_answer[index]:
                         result[index] = "🟩"
                         remaining[index] = None
 
-                # Yellow second
+                # Yellow only when an unused matching letter remains
                 for index, letter in enumerate(attempt):
-
                     if result[index] == "🟩":
                         continue
 
                     if letter in remaining:
-
                         result[index] = "🟨"
-
-                        remaining[
-                            remaining.index(letter)
-                        ] = None
+                        remaining[remaining.index(letter)] = None
 
                 display = "".join(result)
 
@@ -2060,8 +2021,6 @@ with tab_people:
                 == "CORRECT"
             ):
 
-                clean_internal_log()
-
                 st.success(
                     "🔓 SECURITY LOCK DEFEATED."
                 )
@@ -2080,8 +2039,6 @@ with tab_people:
                 == "CONTINUE"
             ):
 
-                clean_internal_log()
-
                 st.rerun()
 
             # -----------------------------------------------
@@ -2093,8 +2050,6 @@ with tab_people:
                 and result.get("status")
                 == "FAILED"
             ):
-
-                clean_internal_log()
 
                 st.error(
                     "🔐 SECURITY LOCK FAILED. "
@@ -2275,8 +2230,6 @@ with tab_people:
                             )
 
                             if success:
-
-                                clean_internal_log()
 
                                 st.rerun()
 
@@ -2490,8 +2443,6 @@ with tab_accuse:
                 )
 
                 if success:
-
-                    clean_internal_log()
 
                     st.rerun()
 
