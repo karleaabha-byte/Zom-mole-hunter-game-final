@@ -619,6 +619,12 @@ class MoleAI:
                 "cafeteria_evidence_found",
                 False
             )
+            
+            wordle_failed = getattr(
+                state,
+                "wordle_failed",
+                False
+            )
 
             # ====================================================
             # TRUTH
@@ -667,7 +673,14 @@ class MoleAI:
                     # Once BOTH clues are available, being truthful
                     # makes the detective's case easier.
                     score -= 30
+                    
+                if wordle_failed:
 
+                    # The detective is locked out of the security
+                    # challenge, so a truthful answer hands back
+                    # information they could not otherwise obtain.
+                    score -= 12
+                    
                 return score
 
             # ====================================================
@@ -732,6 +745,18 @@ class MoleAI:
                     # With only Storage evidence, lying has
                     # some strategic value but is riskier.
                     score += 10
+                    
+                if wordle_failed:
+
+                    # The detective failed the security challenge
+                    # and cannot cross-check the answer, so the
+                    # lie is much cheaper to sustain.
+                    score += 12
+
+                else:
+
+                    # Security is open, so the lie can be checked.
+                    score -= 6
 
                 return score
 
