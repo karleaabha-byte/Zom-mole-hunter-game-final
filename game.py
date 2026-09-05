@@ -456,23 +456,45 @@ class GameState:
 
 
         # ----------------------------------------------------
-        # WORDLE RESULT
-        # ----------------------------------------------------
+# WORDLE RESULT
+# ----------------------------------------------------
 
-        for index, letter in enumerate(guess):
+# Start with everything gray
+result = ["⬛"] * 5
 
-            if letter == answer[index]:
+# Track how many times each letter appears in the answer
+remaining = {}
 
-                result.append("🟩")
+for letter in answer:
+    remaining[letter] = remaining.get(letter, 0) + 1
 
-            elif letter in answer:
 
-                result.append("🟨")
+# ----------------------------------------------------
+# FIRST PASS — CORRECT POSITION (GREEN)
+# ----------------------------------------------------
 
-            else:
+for index, letter in enumerate(guess):
 
-                result.append("⬛")
+    if letter == answer[index]:
+        result[index] = "🟩"
+        remaining[letter] -= 1
 
+
+# ----------------------------------------------------
+# SECOND PASS — WRONG POSITION (YELLOW)
+# ----------------------------------------------------
+
+for index, letter in enumerate(guess):
+
+    # Already green
+    if result[index] == "🟩":
+        continue
+
+    # Letter exists in answer and has not already
+    # been used by another green/yellow tile
+    if remaining.get(letter, 0) > 0:
+        result[index] = "🟨"
+        remaining[letter] -= 1
 
         # ====================================================
         # CORRECT
