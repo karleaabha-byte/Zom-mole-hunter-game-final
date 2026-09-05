@@ -952,24 +952,12 @@ def render_clue(
                 clue["riddle"]
             )
 
-        # ----------------------------------------------------
-        # STORAGE CODE RESULT
-        # ----------------------------------------------------
-
-        if (
-            game.storage_riddle_solved
-            and game.storage_evidence_found
-        ):
-
-            st.success(
-                "✓ CODE CORRECT"
-            )
-
-            st.info(
-                "🔎 Storage evidence FOUND. "
-                "A ventilation override was recorded "
-                "at 11:50 PM."
-            )
+        # IMPORTANT:
+        # Storage CODE CORRECT / EVIDENCE FOUND
+        # is NOT displayed here.
+        #
+        # It is displayed only once in the
+        # Crime Scenes section below.
 
         if clue.get("note"):
 
@@ -1551,7 +1539,7 @@ with tab_rooms:
                 )
 
                 # =================================================
-                # STORAGE RIDDLE ANSWER
+                # STORAGE RIDDLE
                 # =================================================
 
                 if (
@@ -1588,10 +1576,6 @@ with tab_rooms:
 
                         if success:
 
-                            # A correct answer ALWAYS means
-                            # the Storage evidence is recovered.
-                            # The internal 50/50 mechanic is ignored.
-
                             game.storage_riddle_solved = True
                             game.storage_evidence_found = True
 
@@ -1599,8 +1583,8 @@ with tab_rooms:
                                 "correct"
                             )
 
-                            # Remove any old hidden mechanic
-                            # messages from the actual game log.
+                            # Remove hidden/internal messages
+                            # from the actual game log.
                             if hasattr(game, "log"):
 
                                 game.log = [
@@ -1620,7 +1604,7 @@ with tab_rooms:
                                             "breeze",
                                             "storage riddle discovered",
                                         )
-                                    )
+                                    ]
                                 ]
 
                             st.rerun()
@@ -1639,6 +1623,7 @@ with tab_rooms:
 
                 # =================================================
                 # STORAGE RESULT DISPLAY
+                # ONLY ONE DISPLAY LOCATION
                 # =================================================
 
                 if (
@@ -1680,7 +1665,8 @@ with tab_rooms:
                     )
 
                     # ------------------------------------------------
-                    # SHOW THE MOST RECENT PIN RESULT ONLY ONCE
+                    # PIN RESULT
+                    # DISPLAYED ONLY ONCE
                     # ------------------------------------------------
 
                     if (
@@ -1695,6 +1681,7 @@ with tab_rooms:
                     elif (
                         st.session_state.pin_result
                         == "correct"
+                        and game.pin_cracked
                     ):
 
                         st.success(
@@ -1820,8 +1807,6 @@ with tab_rooms:
                                     "incorrect"
                                 )
 
-                            # Rerun so the stored result is displayed
-                            # exactly once below the PIN section.
                             st.rerun()
 
                         st.caption(
