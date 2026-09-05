@@ -330,8 +330,11 @@ CAFETERIA_CLUE = {
     ],
 
     "note": (
-        "Restocking began at 11:50 PM — during the camera blackout."
-    )
+    "Restocking began at 11:50 PM — during the camera blackout. "
+    "Machine #3 is fully automated and requires no employee "
+    "to operate during a restocking cycle."
+)
+    
 }
 
 
