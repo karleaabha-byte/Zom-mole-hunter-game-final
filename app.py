@@ -1309,7 +1309,7 @@ with st.sidebar:
                     f'• {safe_html(entry)}'
                     '</div>'
                     for entry in reversed(
-                        visible_log[-20:]
+                        visible_log
                     )
                 )
                 +
