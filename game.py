@@ -1,6 +1,6 @@
 
-import time
 import case
+import random
 
 from ai_agent import MoleAI
 from evidence import EvidenceBoard
@@ -16,11 +16,8 @@ ROOMS = [
     "Cafeteria"
 ]
 
-TOTAL_BUDGET = 12
-
 WORDLE_ANSWER = "VENTS"
 WORDLE_MAX_ATTEMPTS = 6
-WORDLE_TIME_LIMIT = 45
 
 
 # ============================================================
@@ -43,6 +40,8 @@ aaker aalen aalto aargh aaron aarti aasen ababa aback abaco abadi abair abare ab
 class GameState:
 
     def __init__(self, seed=None):
+
+        self.rng = random.Random(seed)
 
         # ----------------------------------------------------
         # AI
@@ -108,29 +107,21 @@ class GameState:
 
         self.wordle_max_attempts = WORDLE_MAX_ATTEMPTS
 
-        self.wordle_time_limit = WORDLE_TIME_LIMIT
-
-        self.wordle_started_at = None
-
         self.wordle_failed = False
+
+        self.storage_riddle_solved = False
+        self.storage_evidence_found = False
+        self.storage_roll = None
+        self.cafeteria_evidence_found = False
 
 
     # ========================================================
     # ACTIONS
     # ========================================================
 
-    @property
-    def actions_remaining(self):
-
-        return TOTAL_BUDGET - self.actions_used
-
-
     def can_act(self):
 
-        return (
-            not self.game_over
-            and self.actions_remaining > 0
-        )
+        return not self.game_over
 
 
     def _log(self, text):
@@ -198,60 +189,12 @@ class GameState:
 
         elif room == "Storage":
 
-            # ------------------------------------------------
-            # Zephyr decides whether to sabotage the riddle.
-            # ------------------------------------------------
-
-            sabotage = self.mole_ai.decide_riddle_sabotage(
-                self.suspicion
+            clue = case.get_storage_clue()
+            self.room_decisions[room] = "awaiting_riddle"
+            self._log(
+                "📦 Storage riddle discovered. Solve BREEZE "
+                "to determine whether the evidence can be recovered."
             )
-
-            if sabotage:
-
-                clue = case.get_storage_clue(
-                    "sabotage"
-                )
-
-                self.room_decisions[room] = "riddle_sabotage"
-
-                self._log(
-                    "⚠️ The Storage terminal appears "
-                    "to have been tampered with."
-                )
-
-                self.suspicion += 3
-
-            else:
-
-                clue = case.get_storage_clue(
-                    "help"
-                )
-
-                self.room_decisions[room] = "help"
-
-                self._log(
-                    "📦 The Storage terminal appears "
-                    "undisturbed."
-                )
-
-            self.evidence.add_clue(
-                "storage_riddle"
-            )
-
-
-        # ====================================================
-        # CAFETERIA
-        # ====================================================
-
-        else:
-
-            clue = case.get_cafeteria_clue()
-
-            self.evidence.add_clue(
-                "cafeteria_pin"
-            )
-
-            self.room_decisions[room] = "neutral"
 
 
         # ----------------------------------------------------
@@ -333,10 +276,8 @@ class GameState:
             # ------------------------------------------------
 
             activate_challenge = (
-                self.mole_ai.decide_extra_challenge(
-                    self.suspicion,
-                    self.actions_remaining
-                )
+                self.storage_evidence_found
+                and self.cafeteria_evidence_found
             )
 
 
@@ -906,8 +847,6 @@ class GameState:
 
         self.accused = character
 
-        self.actions_used = TOTAL_BUDGET
-
         self.game_over = True
 
 
@@ -942,9 +881,6 @@ class GameState:
 
             "actions_used":
                 self.actions_used,
-
-            "actions_remaining":
-                self.actions_remaining,
 
             "suspicion":
                 self.suspicion,
