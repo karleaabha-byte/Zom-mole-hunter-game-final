@@ -1604,8 +1604,7 @@ with tab_rooms:
                                             "breeze",
                                             "storage riddle discovered",
                                         )
-                                    ]
-                                ]
+                                    )]
 
                             st.rerun()
 
