@@ -1,7 +1,7 @@
 """
 Strategic Adversarial Mole AI for Zom-Mole Hunter.
 
-Zephyr is not trying to sabotage everything.
+Zephyr is a utility-based agent.
 
 Zephyr's objective is to:
     1. Make the detective's investigation harder.
@@ -9,14 +9,15 @@ Zephyr's objective is to:
     3. Avoid creating contradictions.
     4. Delay access to useful evidence when it is worth the risk.
 
-The AI is a utility-based agent: for each decision point it scores a
-small set of candidate actions with a hand-tuned utility function
-(_evaluate_state), applies a one-step penalty representing the
-detective's likely counter-response, and picks the candidate with
-the highest resulting utility.
+For truth/lie decisions, Zephyr simulates both actions,
+evaluates the resulting game states, estimates the detective's
+response, and chooses the action with the higher utility.
+
+The Storage evidence is randomized elsewhere in the game.
+The AI does NOT control that 50/50 event.
 
 Zephyr = utility-maximizing agent
-Detective = fixed adversarial-response estimate (not a searched agent)
+Detective = fixed adversarial-response estimate
 """
 
 import random
@@ -50,12 +51,10 @@ class MoleAI:
 
         Zephyr wants:
             - lower suspicion
-            - less useful evidence for detective
+            - less useful evidence
             - fewer contradictions
             - security locked
             - investigation delayed
-
-        Zephyr does NOT simply want maximum sabotage.
         """
 
         suspicion = getattr(
@@ -70,7 +69,6 @@ class MoleAI:
         # SUSPICION
         # --------------------------------------------------------
 
-        # Low suspicion is extremely valuable.
         score += (100 - suspicion) * 1.5
 
         # --------------------------------------------------------
@@ -88,20 +86,38 @@ class MoleAI:
         # PHYSICAL EVIDENCE
         # --------------------------------------------------------
 
-        storage_found = getattr(state, "storage_evidence_found", False)
-        cafe_found = getattr(state, "cafeteria_evidence_found", False)
+        storage_found = getattr(
+            state,
+            "storage_evidence_found",
+            False
+        )
+
+        cafe_found = getattr(
+            state,
+            "cafeteria_evidence_found",
+            False
+        )
 
         if storage_found:
-            # Storage evidence is direct physical evidence against Zephyr.
+            # Direct physical evidence is dangerous.
             score -= 35
         else:
-            # No Storage evidence means less material for the detective.
+            # Keeping Storage evidence hidden is valuable.
             score += 20
 
         if cafe_found:
-            # Cafeteria evidence is always present and therefore must be
-            # considered by the interrogation utility evaluation.
+            # Cafeteria evidence is weaker than Storage evidence.
             score -= 5
+
+        # --------------------------------------------------------
+        # COMBINED EVIDENCE
+        # --------------------------------------------------------
+
+        if storage_found and cafe_found:
+
+            # Together, these clues give the detective a much
+            # stronger basis for connecting Zephyr to the case.
+            score -= 30
 
         # --------------------------------------------------------
         # SECURITY
@@ -132,7 +148,11 @@ class MoleAI:
         # INTERROGATION ACCESS
         # --------------------------------------------------------
 
-        if getattr(state, "pin_cracked", False):
+        if getattr(
+            state,
+            "pin_cracked",
+            False
+        ):
 
             if not getattr(
                 state,
@@ -162,8 +182,6 @@ class MoleAI:
 
             if guilt_scores:
 
-                # If Zephyr has accumulated guilt evidence,
-                # that is bad for Zephyr.
                 try:
 
                     mole_score = guilt_scores.get(
@@ -210,10 +228,9 @@ class MoleAI:
     def _copy_state(self, game_state):
 
         """
-        Make a simulation copy.
+        Create a hypothetical copy of the game state.
 
-        The utility evaluation operates on hypothetical states
-        and must never modify the real game.
+        The real game state is never modified during simulation.
         """
 
         try:
@@ -238,38 +255,54 @@ class MoleAI:
     ):
 
         """
-        Decide whether the hidden secondary security lock activates.
+        Determine whether the hidden secondary security lock
+        should activate.
 
-        The player does not know this is a Zephyr decision.  The only
-        evidence state that can exist at this point is: 
+        IMPORTANT:
+        The Storage clue itself is randomized elsewhere.
 
+        The lock activates only when:
             Storage FOUND + Cafeteria FOUND
-            Storage NOT FOUND + Cafeteria FOUND
 
-        The lock activates only when both physical clues are present.
-        Cafeteria evidence is guaranteed; Storage evidence is the only
-        randomized clue.
+        Therefore this method does not randomize the Storage clue.
         """
 
         if game_state is None:
             return False
 
         storage_found = bool(
-            getattr(game_state, "storage_evidence_found", False)
-        )
-        cafe_found = bool(
-            getattr(game_state, "cafeteria_evidence_found", False)
+            getattr(
+                game_state,
+                "storage_evidence_found",
+                False
+            )
         )
 
-        activate = storage_found and cafe_found
+        cafe_found = bool(
+            getattr(
+                game_state,
+                "cafeteria_evidence_found",
+                False
+            )
+        )
+
+        activate = (
+            storage_found
+            and cafe_found
+        )
 
         if activate:
+
             self.security_sabotage_count += 1
+
             self.decisions_log.append(
                 "Zephyr activated the hidden secondary security lock."
             )
+
         else:
+
             self.security_skip_count += 1
+
             self.decisions_log.append(
                 "Zephyr did not activate the hidden secondary security lock."
             )
@@ -293,7 +326,7 @@ class MoleAI:
 
             if sabotage:
 
-                # Security lock activates.
+                # Activate security lock.
                 state.security_challenge_active = True
 
                 state.security_challenge_complete = False
@@ -315,7 +348,7 @@ class MoleAI:
                 # Delaying interrogation is valuable.
                 score += 25
 
-                # But obvious tampering is risky.
+                # Obvious tampering is risky.
                 score -= 12
 
                 return score
@@ -344,7 +377,7 @@ class MoleAI:
                 # Losing control of interrogation hurts Zephyr.
                 score -= 20
 
-                # But avoiding tampering improves cover.
+                # Avoiding tampering improves cover.
                 score += 12
 
                 return score
@@ -366,7 +399,6 @@ class MoleAI:
     ):
 
         if state is None:
-
             return current_score
 
         try:
@@ -377,13 +409,14 @@ class MoleAI:
                 False
             ):
 
-                # Detective can attempt the Wordle.
+                # Detective can attempt Wordle.
 
                 solve = current_score - 12
 
                 wait = current_score - 3
 
-                # Detective chooses whichever hurts Zephyr more.
+                # Detective chooses the response that is
+                # worse for Zephyr.
                 return min(
                     solve,
                     wait
@@ -392,7 +425,6 @@ class MoleAI:
             else:
 
                 # Detective gets interrogation.
-
                 interrogation = (
                     current_score - 20
                 )
@@ -431,17 +463,27 @@ class MoleAI:
     ):
 
         """
-        Decide whether Zephyr should lie.
+        Decide whether Zephyr should tell the truth or lie.
 
-        Lying:
-            + conceals information
-            - increases suspicion
-            - can create contradictions
+        Zephyr simulates BOTH possible actions.
 
         Truth:
-            + reduces suspicion
-            - gives detective information
+            + decreases suspicion
+            + preserves credibility
+            - gives the detective useful information
+
+        Lie:
+            + conceals information
+            + can protect Zephyr when evidence is strong
+            - increases suspicion
+            - may create contradictions
+
+        The final decision is made by comparing utility.
         """
+
+        # --------------------------------------------------------
+        # FALLBACK WHEN NO GAME STATE IS AVAILABLE
+        # --------------------------------------------------------
 
         if game_state is None:
 
@@ -453,14 +495,19 @@ class MoleAI:
 
             if current_suspicion >= 65:
 
+                # At extremely high suspicion, lying can be
+                # dangerous without enough state information.
                 tell_truth = True
 
             elif current_suspicion <= 30:
 
+                # At low suspicion, lying is relatively safe.
                 tell_truth = False
 
             else:
 
+                # No evidence state is available, so use a
+                # controlled 50/50 fallback.
                 tell_truth = (
                     self.rng.random() < 0.5
                 )
@@ -472,7 +519,7 @@ class MoleAI:
             return tell_truth
 
         # --------------------------------------------------------
-        # Simulate LIE
+        # COPY REAL STATE
         # --------------------------------------------------------
 
         lie_state = self._copy_state(
@@ -483,40 +530,40 @@ class MoleAI:
             game_state
         )
 
-        lie_score = (
-            self._simulate_truth_action(
-                lie_state,
-                False
-            )
-        )
+        # --------------------------------------------------------
+        # SIMULATE LIE
+        # --------------------------------------------------------
 
-        truth_score = (
-            self._simulate_truth_action(
-                truth_state,
-                True
-            )
+        lie_score = self._simulate_truth_action(
+            lie_state,
+            False
         )
 
         # --------------------------------------------------------
-        # Detective response (utility penalty)
+        # SIMULATE TRUTH
         # --------------------------------------------------------
 
-        lie_score = (
-            self._interrogation_response(
-                lie_state,
-                lie_score
-            )
-        )
-
-        truth_score = (
-            self._interrogation_response(
-                truth_state,
-                truth_score
-            )
+        truth_score = self._simulate_truth_action(
+            truth_state,
+            True
         )
 
         # --------------------------------------------------------
-        # Zephyr picks the higher-utility action
+        # DETECTIVE RESPONSE
+        # --------------------------------------------------------
+
+        lie_score = self._interrogation_response(
+            lie_state,
+            lie_score
+        )
+
+        truth_score = self._interrogation_response(
+            truth_state,
+            truth_score
+        )
+
+        # --------------------------------------------------------
+        # CHOOSE HIGHER UTILITY
         # --------------------------------------------------------
 
         if lie_score > truth_score:
@@ -529,6 +576,7 @@ class MoleAI:
 
         else:
 
+            # Only use suspicion as a tie-breaker.
             current_suspicion = getattr(
                 game_state,
                 "suspicion",
@@ -546,7 +594,7 @@ class MoleAI:
         return tell_truth
 
     # ============================================================
-    # TRUTH SIMULATION
+    # TRUTH / LIE SIMULATION
     # ============================================================
 
     def _simulate_truth_action(
@@ -559,6 +607,22 @@ class MoleAI:
             return -9999
 
         try:
+
+            storage_found = getattr(
+                state,
+                "storage_evidence_found",
+                False
+            )
+
+            cafe_found = getattr(
+                state,
+                "cafeteria_evidence_found",
+                False
+            )
+
+            # ====================================================
+            # TRUTH
+            # ====================================================
 
             if truth:
 
@@ -576,21 +640,39 @@ class MoleAI:
                     state
                 )
 
-                # Truth gives detective useful information.
+                # Truth gives useful information.
                 score -= 10
 
-                if getattr(state, "storage_evidence_found", False):
-                    # With Storage evidence present, a truthful alibi gives
-                    # the detective a clean comparison point.
+                if storage_found:
+
+                    # A truthful answer gives the detective
+                    # a clean comparison against the physical clue.
                     score -= 15
+
                 else:
-                    # Without Storage evidence, truth is less damaging.
+
+                    # Without Storage evidence, truth is
+                    # comparatively less dangerous.
                     score -= 5
 
-                # But credibility improves.
+                # Credibility benefit.
                 score += 8
 
+                # ------------------------------------------------
+                # COMBINED EVIDENCE
+                # ------------------------------------------------
+
+                if storage_found and cafe_found:
+
+                    # Once BOTH clues are available, being truthful
+                    # makes the detective's case easier.
+                    score -= 30
+
                 return score
+
+            # ====================================================
+            # LIE
+            # ====================================================
 
             else:
 
@@ -611,13 +693,16 @@ class MoleAI:
                 # A lie conceals useful information.
                 score += 15
 
-                if getattr(state, "storage_evidence_found", False):
-                    # Storage evidence gives the detective more opportunity
-                    # to challenge a lie.
+                if storage_found:
+
+                    # Storage evidence allows the detective
+                    # to challenge the lie.
                     score -= 15
+
                 else:
-                    # When Storage evidence is absent, a lie is harder to
-                    # disprove from physical evidence.
+
+                    # Without Storage evidence, the lie is
+                    # harder to disprove.
                     score += 8
 
                 # Suspicion is dangerous.
@@ -625,6 +710,28 @@ class MoleAI:
 
                 # Potential contradiction.
                 score -= 8
+
+                # ------------------------------------------------
+                # STRATEGIC VALUE OF LYING
+                # ------------------------------------------------
+
+                if storage_found and cafe_found:
+
+                    # BOTH clues are now available.
+                    #
+                    # At this point Zephyr has strong reason to
+                    # conceal information rather than voluntarily
+                    # strengthen the detective's case.
+                    #
+                    # This is a utility bonus, NOT a hard-coded
+                    # "always lie" rule.
+                    score += 45
+
+                elif storage_found:
+
+                    # With only Storage evidence, lying has
+                    # some strategic value but is riskier.
+                    score += 10
 
                 return score
 
@@ -645,12 +752,11 @@ class MoleAI:
     ):
 
         if state is None:
-
             return current_score
 
         try:
 
-            # Detective can compare the answer against
+            # Detective compares the answer against
             # existing evidence.
 
             evidence_check = (
@@ -661,6 +767,8 @@ class MoleAI:
                 current_score - 8
             )
 
+            # Detective chooses the response that
+            # hurts Zephyr more.
             return min(
                 evidence_check,
                 suspicion_check
