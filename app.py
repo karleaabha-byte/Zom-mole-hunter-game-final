@@ -1665,10 +1665,6 @@ with tab_rooms:
                         st.success(
                             "🔎 Storage evidence FOUND — Wordle will activate after the PIN is cracked."
                         )
-                    else:
-                        st.warning(
-                            "❌ Storage evidence NOT FOUND — Wordle will be skipped."
-                        )
 
 
                 # =================================================
