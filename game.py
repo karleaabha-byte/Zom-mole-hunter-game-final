@@ -2,6 +2,7 @@
 Game state and rules engine for Zom-Mole Hunter
 """
 
+import random
 import case
 
 from ai_agent import MoleAI
@@ -35,6 +36,7 @@ class GameState:
         # AI
         # ----------------------------------------------------
 
+        self.rng = random.Random(seed)
         self.mole_ai = MoleAI(seed)
 
         # ----------------------------------------------------
@@ -203,7 +205,7 @@ class GameState:
 
                 return (
                     False,
-                    "Solve the BREEZE riddle in Storage first."
+                    "This location is not accessible yet."
                 )
 
             clue = case.get_cafeteria_clue()
@@ -266,25 +268,19 @@ class GameState:
         self.actions_used += 1
 
         # The ventilation override is the ONLY 50/50 evidence roll.
-        self.ventilation_roll = self.mole_ai.rng.random() < 0.5
+        self.ventilation_roll = self.rng.random() < 0.5
         self.ventilation_override_found = self.ventilation_roll
 
         self.evidence.add_clue("storage_riddle")
 
         if self.ventilation_override_found:
             self.evidence.add_clue("ventilation_override")
-            result = (
-                "BREEZE is correct. The Cafeteria PIN clue is now "
-                "accessible. You also found a ventilation record."
-            )
-        else:
-            result = (
-                "BREEZE is correct. The Cafeteria PIN clue is now "
-                "accessible."
-            )
 
-        self._log("🔎 Storage riddle solved.")
-        return True, result
+        # Do not reveal what solving the riddle unlocked or whether
+        # the 50/50 ventilation evidence roll succeeded. The player
+        # should discover those connections from the evidence board.
+        self._log("🔎 Storage investigation completed.")
+        return True, ""
 
 
     # ========================================================
