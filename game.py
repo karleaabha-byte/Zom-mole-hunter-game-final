@@ -50,26 +50,14 @@ class GameState:
         # ACTION / GAME STATE
         # ----------------------------------------------------
 
-        # Actions are unlimited.
-        # We keep track of how many actions the player has used
-        # for the final case report/statistics.
-
         self.actions_used = 0
-
         self.suspicion = 10
-
         self.visited_rooms = {}
-
         self.room_decisions = {}
-
         self.asked = {}
-
         self.log = []
-
         self.game_over = False
-
         self.result = None
-
         self.accused = None
 
         # ----------------------------------------------------
@@ -77,7 +65,6 @@ class GameState:
         # ----------------------------------------------------
 
         self.contradiction_flagged = False
-
         self.last_contradiction = None
 
         # ----------------------------------------------------
@@ -85,7 +72,6 @@ class GameState:
         # ----------------------------------------------------
 
         self.pin_cracked = False
-
         self.pin_attempts = 0
 
         # ----------------------------------------------------
@@ -93,15 +79,10 @@ class GameState:
         # ----------------------------------------------------
 
         self.security_challenge_active = False
-
         self.security_challenge_complete = False
-
         self.wordle_answer = WORDLE_ANSWER
-
         self.wordle_attempts = []
-
         self.wordle_max_attempts = WORDLE_MAX_ATTEMPTS
-
         self.wordle_failed = False
 
         # ----------------------------------------------------
@@ -109,10 +90,16 @@ class GameState:
         # ----------------------------------------------------
 
         self.storage_riddle_solved = False
-
         self.storage_evidence_found = False
 
-        self.storage_roll = None
+        # Decide the hidden Storage case state ONCE when the
+        # case is created. Streamlit reruns do not reroll it.
+        #
+        # True  -> ventilation evidence exists
+        # False -> ventilation evidence does not exist
+        self.storage_roll = (
+            self.rng.random() < 0.5
+        )
 
         self.cafeteria_evidence_found = False
 
@@ -122,17 +109,14 @@ class GameState:
     # ========================================================
 
     def can_act(self):
-
         return not self.game_over
 
 
     def _log(self, text):
-
         self.log.append(text)
 
 
     def _clamp_suspicion(self):
-
         self.suspicion = max(
             0,
             min(
@@ -149,28 +133,22 @@ class GameState:
     def visit_room(self, room):
 
         if not self.can_act():
-
             return (
                 False,
                 "The case is already closed."
             )
 
-
         if room in self.visited_rooms:
-
             return (
                 False,
                 f"You've already investigated the {room}."
             )
 
-
         if room not in ROOMS:
-
             return (
                 False,
                 "Unknown room."
             )
-
 
         # ====================================================
         # LABORATORY
@@ -186,7 +164,6 @@ class GameState:
 
             self.room_decisions[room] = "neutral"
 
-
         # ====================================================
         # STORAGE
         # ====================================================
@@ -196,12 +173,6 @@ class GameState:
             clue = case.get_storage_clue()
 
             self.room_decisions[room] = "awaiting_riddle"
-
-            self._log(
-                "📦 Storage riddle discovered. Solve BREEZE "
-                "to determine whether the evidence can be recovered."
-            )
-
 
         # ====================================================
         # CAFETERIA
@@ -219,26 +190,14 @@ class GameState:
 
             self.room_decisions[room] = "neutral"
 
-
-        # ----------------------------------------------------
-        # CLAMP SUSPICION
-        # ----------------------------------------------------
-
         self._clamp_suspicion()
 
-
-        # ----------------------------------------------------
-        # SAVE INVESTIGATION
-        # ----------------------------------------------------
-
         self.visited_rooms[room] = clue
-
         self.actions_used += 1
 
         self._log(
             f"🔎 Investigated the {room}."
         )
-
 
         return (
             True,
@@ -253,15 +212,12 @@ class GameState:
     def solve_storage_riddle(self, answer):
 
         if "Storage" not in self.visited_rooms:
-
             return (
                 False,
                 "Investigate Storage first."
             )
 
-
         if self.storage_riddle_solved:
-
             return (
                 True,
                 "FOUND"
@@ -269,13 +225,10 @@ class GameState:
                 else "NOT_FOUND"
             )
 
-
-        if str(answer).strip().upper() != "BREEZE":
+        if str(answer).strip().upper() != case.STORAGE_ANSWER:
 
             self.actions_used += 1
-
             self.suspicion += 2
-
             self._clamp_suspicion()
 
             self._log(
@@ -287,15 +240,13 @@ class GameState:
                 "Incorrect answer. Try again."
             )
 
-
         self.storage_riddle_solved = True
-
         self.actions_used += 1
 
-        self.storage_roll = self.rng.random() < 0.5
-
+        # IMPORTANT:
+        # The result was chosen when the case began.
+        # It is NOT rerolled when the riddle is solved.
         self.storage_evidence_found = self.storage_roll
-
 
         if self.storage_evidence_found:
 
@@ -307,8 +258,9 @@ class GameState:
                 "evidence_found"
             )
 
+            # No player-facing branch information.
             self._log(
-                "🔎 Storage evidence FOUND (50/50 result)."
+                "🔎 Storage search completed."
             )
 
             return (
@@ -316,13 +268,13 @@ class GameState:
                 "FOUND"
             )
 
-
         self.room_decisions["Storage"] = (
             "evidence_not_found"
         )
 
+        # No player-facing branch information.
         self._log(
-            "❌ Storage evidence NOT FOUND (50/50 result)."
+            "🔎 Storage search completed."
         )
 
         return (
@@ -338,23 +290,13 @@ class GameState:
     def attempt_pin(self, guess):
 
         if self.pin_cracked:
-
             return True
 
-
         if not self.can_act():
-
             return False
 
-
-        # ----------------------------------------------------
-        # EVERY ATTEMPT IS TRACKED
-        # ----------------------------------------------------
-
         self.actions_used += 1
-
         self.pin_attempts += 1
-
 
         digits = "".join(
             character
@@ -362,20 +304,13 @@ class GameState:
             if character.isdigit()
         )
 
-
         correct = (
             digits == case.CORRECT_PIN
         )
 
-
-        # ====================================================
-        # CORRECT PIN
-        # ====================================================
-
         if correct:
 
             self.pin_cracked = True
-
             self.evidence.set_pin_cracked()
 
             self._log(
@@ -383,44 +318,30 @@ class GameState:
                 "Restricted employee access unlocked."
             )
 
-
-            # Wordle activates only when BOTH
-            # Storage and Cafeteria evidence exist.
-
             activate_challenge = (
                 self.storage_evidence_found
                 and self.cafeteria_evidence_found
             )
 
-
             if activate_challenge:
 
                 self.security_challenge_active = True
-
                 self.security_challenge_complete = False
 
                 self._log(
                     "🚨 SECONDARY SECURITY LOCK ACTIVATED."
                 )
 
-
             else:
 
                 self.security_challenge_active = False
-
                 self.security_challenge_complete = True
 
                 self._log(
                     "🔓 INTERROGATION SYSTEM UNLOCKED."
                 )
 
-
             return True
-
-
-        # ====================================================
-        # INCORRECT PIN
-        # ====================================================
 
         self._log(
             f"🔐 Incorrect PIN attempt "
@@ -436,14 +357,9 @@ class GameState:
 
     def submit_wordle(self, guess):
 
-        # ----------------------------------------------------
-        # CHALLENGE ACTIVE?
-        # ----------------------------------------------------
-
         if not self.security_challenge_active:
 
             if self.security_challenge_complete:
-
                 return (
                     True,
                     "ALREADY_COMPLETE"
@@ -454,54 +370,27 @@ class GameState:
                 "No security challenge is active."
             )
 
-
-        # ----------------------------------------------------
-        # NORMALIZE GUESS
-        # ----------------------------------------------------
-
         guess = str(guess).strip().upper()
 
-
-        # ----------------------------------------------------
-        # LENGTH CHECK
-        # ----------------------------------------------------
-
         if len(guess) != 5:
-
             return (
                 False,
                 "Enter a 5-letter word."
             )
 
-
-        # ----------------------------------------------------
-        # LETTER CHECK
-        # ----------------------------------------------------
-
         if not guess.isalpha():
-
             return (
                 False,
                 "Letters only."
             )
 
-
-        # ----------------------------------------------------
-        # ATTEMPT LIMIT
-        # ----------------------------------------------------
-
-        if (
-            len(self.wordle_attempts)
-            >= self.wordle_max_attempts
-        ):
+        if len(self.wordle_attempts) >= self.wordle_max_attempts:
 
             self.security_challenge_active = False
-
             self.wordle_failed = True
 
             self._log(
-                "🔐 SECURITY CHALLENGE FAILED: "
-                "Maximum attempts reached."
+                "🔐 SECURITY CHALLENGE FAILED."
             )
 
             return (
@@ -509,23 +398,8 @@ class GameState:
                 "ATTEMPTS_EXHAUSTED"
             )
 
-
-        # ----------------------------------------------------
-        # SAVE ATTEMPT
-        # ----------------------------------------------------
-
-        self.wordle_attempts.append(
-            guess
-        )
-
+        self.wordle_attempts.append(guess)
         answer = self.wordle_answer
-
-
-        # ====================================================
-        # WORDLE RESULT
-        # ====================================================
-
-        # Start with every tile gray.
 
         result = [
             "⬛",
@@ -535,74 +409,32 @@ class GameState:
             "⬛"
         ]
 
-
-        # ----------------------------------------------------
-        # COUNT LETTERS IN ANSWER
-        # ----------------------------------------------------
-
-        # This is important for repeated letters.
-        #
-        # Example:
-        #
-        # Answer: VENTS
-        # Guess:  FENCE
-        #
-        # There is only ONE E in VENTS, so only one E
-        # in the guess can receive a green/yellow result.
-
         remaining = {}
 
         for letter in answer:
-
             remaining[letter] = (
                 remaining.get(letter, 0) + 1
             )
-
-
-        # ----------------------------------------------------
-        # FIRST PASS — CORRECT POSITION = GREEN
-        # ----------------------------------------------------
 
         for index, letter in enumerate(guess):
 
             if letter == answer[index]:
 
                 result[index] = "🟩"
-
                 remaining[letter] -= 1
-
-
-        # ----------------------------------------------------
-        # SECOND PASS — WRONG POSITION = YELLOW
-        # ----------------------------------------------------
 
         for index, letter in enumerate(guess):
 
-            # Do not process letters that are already green.
-
             if result[index] == "🟩":
-
                 continue
 
-
-            # Only mark yellow if the answer still has an
-            # unused occurrence of that letter.
-
             if remaining.get(letter, 0) > 0:
-
                 result[index] = "🟨"
-
                 remaining[letter] -= 1
-
-
-        # ====================================================
-        # CORRECT
-        # ====================================================
 
         if guess == answer:
 
             self.security_challenge_complete = True
-
             self.security_challenge_active = False
 
             self._log(
@@ -613,9 +445,7 @@ class GameState:
                 True,
                 {
                     "status": "CORRECT",
-
                     "result": result,
-
                     "attempts_remaining": (
                         self.wordle_max_attempts
                         - len(self.wordle_attempts)
@@ -623,18 +453,9 @@ class GameState:
                 }
             )
 
-
-        # ====================================================
-        # OUT OF ATTEMPTS
-        # ====================================================
-
-        if (
-            len(self.wordle_attempts)
-            >= self.wordle_max_attempts
-        ):
+        if len(self.wordle_attempts) >= self.wordle_max_attempts:
 
             self.security_challenge_active = False
-
             self.wordle_failed = True
 
             self._log(
@@ -645,25 +466,16 @@ class GameState:
                 False,
                 {
                     "status": "FAILED",
-
                     "result": result,
-
                     "attempts_remaining": 0
                 }
             )
-
-
-        # ====================================================
-        # INCORRECT BUT CONTINUE
-        # ====================================================
 
         return (
             True,
             {
                 "status": "CONTINUE",
-
                 "result": result,
-
                 "attempts_remaining": (
                     self.wordle_max_attempts
                     - len(self.wordle_attempts)
@@ -682,103 +494,60 @@ class GameState:
         question_key
     ):
 
-        # ----------------------------------------------------
-        # PIN LOCK
-        # ----------------------------------------------------
-
         if not self.pin_cracked:
-
             return (
                 False,
                 "🔒 The interrogation system is locked. "
                 "Crack the Cafeteria PIN first."
             )
 
-
-        # ----------------------------------------------------
-        # SECURITY CHALLENGE LOCK
-        # ----------------------------------------------------
-
         if self.security_challenge_active:
-
             return (
                 False,
                 "🔐 Interrogation is locked. "
                 "Complete the secondary security challenge."
             )
 
-
-        # ----------------------------------------------------
-        # FAILED SECURITY CHALLENGE
-        # ----------------------------------------------------
-
         if self.wordle_failed:
-
             return (
                 False,
                 "🔐 Interrogation access was blocked "
                 "by the security system."
             )
 
-
-        # ----------------------------------------------------
-        # ACTION CHECK
-        # ----------------------------------------------------
-
         if not self.can_act():
-
             return (
                 False,
                 "The case is already closed."
             )
 
-
-        # ----------------------------------------------------
-        # ONE QUESTION PER SUSPECT
-        # ----------------------------------------------------
-
         if character in self.asked:
-
             return (
                 False,
                 f"You've already questioned {character}."
             )
 
-
-        # ----------------------------------------------------
-        # VALID CHARACTER
-        # ----------------------------------------------------
-
         if character not in case.CHARACTERS:
-
             return (
                 False,
                 "Unknown character."
             )
 
-
-        # ----------------------------------------------------
-        # VALID QUESTION
-        # ----------------------------------------------------
-
         if question_key not in case.QUESTION_BANK:
-
             return (
                 False,
                 "Unknown question."
             )
 
-
-        # ====================================================
+        # ----------------------------------------------------
         # MOLE AI DECIDES TRUTH / LIE
-        # ====================================================
+        # ----------------------------------------------------
 
         if character == case.MOLE:
 
             tell_truth = (
                 self.mole_ai.decide_truth_or_lie(
-                    self.suspicion,
-                    game_state=self
+                    self.suspicion
                 )
             )
 
@@ -790,7 +559,6 @@ class GameState:
 
             lied = not tell_truth
 
-
         else:
 
             answer_data = case.get_question(
@@ -799,42 +567,20 @@ class GameState:
             )
 
             answer = answer_data["answer"]
-
             lied = False
 
-
-        # ----------------------------------------------------
-        # SAVE STATEMENT
-        # ----------------------------------------------------
-
         self.asked[character] = {
-
             "question": question_key,
-
             "answer": answer,
-
             "lied": lied
         }
-
-
-        # ----------------------------------------------------
-        # SAVE TO EVIDENCE BOARD
-        # ----------------------------------------------------
 
         self.evidence.log_answer(
             character,
             question_key,
             answer,
-
-            # EvidenceBoard stores whether statement
-            # is true.
             not lied
         )
-
-
-        # ====================================================
-        # SUSPICION
-        # ====================================================
 
         if character == case.MOLE:
 
@@ -846,7 +592,6 @@ class GameState:
                     "⚠️ Zephyr's answer feels rehearsed."
                 )
 
-
             else:
 
                 self.suspicion -= 2
@@ -856,46 +601,22 @@ class GameState:
                     "straightforward answer."
                 )
 
-
         else:
-
             self.suspicion -= 1
 
-
         self._clamp_suspicion()
-
-
-        # ----------------------------------------------------
-        # TRACK ACTION
-        # ----------------------------------------------------
-
         self.actions_used += 1
-
-
-        # ----------------------------------------------------
-        # LOG
-        # ----------------------------------------------------
 
         self._log(
             f"💬 Questioned {character}."
         )
 
-
-        # ====================================================
-        # CONTRADICTION DETECTION
-        # ====================================================
-
         try:
-
             new_contradictions = (
                 self.evidence.detect_contradictions()
             )
-
-
         except AttributeError:
-
             new_contradictions = []
-
 
         for contradiction in new_contradictions:
 
@@ -908,7 +629,6 @@ class GameState:
             self._log(
                 f"🚨 {contradiction['detail']}"
             )
-
 
         return (
             True,
@@ -926,41 +646,29 @@ class GameState:
     ):
 
         if self.game_over:
-
             return (
                 False,
                 "The case is already closed."
             )
 
-
         if character not in case.CHARACTERS:
-
             return (
                 False,
                 "Unknown character."
             )
 
-
         self.accused = character
-
         self.game_over = True
 
-
         if character == case.MOLE:
-
             self.result = "win"
-
-
         else:
-
             self.result = "lose"
-
 
         self._log(
             f"⚖️ Final accusation: "
             f"{character}."
         )
-
 
         return (
             True,
@@ -975,50 +683,22 @@ class GameState:
     def get_stats(self):
 
         return {
-
-            "actions_used":
-                self.actions_used,
-
-            "suspicion":
-                self.suspicion,
-
-            "result":
-                self.result,
-
-            "accused":
-                self.accused,
-
-            "contradiction_flagged":
-                self.contradiction_flagged,
-
-            "guilt_scores":
-                getattr(
-                    self.evidence,
-                    "guilt_scores",
-                    {}
-                ),
-
-            "last_contradiction":
-                self.last_contradiction,
-
-            "pin_cracked":
-                self.pin_cracked,
-
-            "pin_attempts":
-                self.pin_attempts,
-
-            "security_challenge_active":
-                self.security_challenge_active,
-
-            "security_challenge_complete":
-                self.security_challenge_complete,
-
-            "wordle_attempts":
-                self.wordle_attempts,
-
-            "wordle_failed":
-                self.wordle_failed,
-
-            "mole_ai":
-                self.mole_ai.stats()
+            "actions_used": self.actions_used,
+            "suspicion": self.suspicion,
+            "result": self.result,
+            "accused": self.accused,
+            "contradiction_flagged": self.contradiction_flagged,
+            "guilt_scores": getattr(
+                self.evidence,
+                "guilt_scores",
+                {}
+            ),
+            "last_contradiction": self.last_contradiction,
+            "pin_cracked": self.pin_cracked,
+            "pin_attempts": self.pin_attempts,
+            "security_challenge_active": self.security_challenge_active,
+            "security_challenge_complete": self.security_challenge_complete,
+            "wordle_attempts": self.wordle_attempts,
+            "wordle_failed": self.wordle_failed,
+            "mole_ai": self.mole_ai.stats()
         }
