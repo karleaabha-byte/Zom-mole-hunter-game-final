@@ -1,28 +1,12 @@
 # 🧟 Zom-Mole Hunter
 
-**Zom-Mole Hunter** is a Python-based detective game built with **Streamlit**.
-The player investigates a mysterious laboratory, solves clues, collects evidence, unlocks a security challenge, and interrogates suspects to identify the hidden mole.
+**Zom-Mole Hunter** is a Python and Streamlit-based detective game where the player investigates a laboratory, solves puzzles, collects evidence, and interrogates suspects to identify the hidden mole.
+
+The player knows that a mole exists, but does **not** know how, when, or where the sabotage is happening. Missing evidence is intentionally ambiguous, and the mole uses adversarial decision-making during interrogation.
 
 ---
 
-## 🎮 Game Overview
-
-A mole is secretly sabotaging the laboratory.
-
-The player knows that **one of the characters is the mole**, but does not know:
-
-* When the sabotage happens
-* How the sabotage happens
-* Which evidence may be missing
-* Whether a suspect is telling the truth or lying
-
-The goal is to investigate the rooms, solve puzzles, collect evidence, and finally identify the mole.
-
----
-
-## 🗂️ Project Structure
-
-The project contains five Python files:
+## 📁 Project Structure
 
 ```text
 Zom-Mole-Hunter/
@@ -37,104 +21,74 @@ Zom-Mole-Hunter/
 
 ### `app.py`
 
-Handles the Streamlit user interface.
-
-It displays:
-
-* Game introduction
-* Room navigation
-* Clues
-* Riddles
-* PIN input
-* Wordle challenge
-* Interrogation
-* Final accusation
+Handles the Streamlit user interface and displays the game progression.
 
 ### `game.py`
 
-Contains the main game logic and manages the current game state.
-
-It controls:
-
-* Room visits
-* Puzzle solving
-* Evidence collection
-* PIN validation
-* Wordle activation
-* Interrogation
-* Suspicion
-* Game progression
+Contains the main game state and gameplay logic, including rooms, puzzles, evidence, PIN validation, Wordle, and interrogation.
 
 ### `case.py`
 
-Contains the case information and investigation data.
-
-It stores:
-
-* Characters
-* Mole identity
-* Room information
-* Laboratory clue
-* Storage riddle
-* Cafeteria clue
-* PIN
-* Interrogation questions and answers
+Stores the case information, clues, suspects, PIN information, and interrogation answers.
 
 ### `evidence.py`
 
-Manages the evidence collected by the player during the investigation.
+Manages evidence collected during the investigation.
 
 ### `ai_agent.py`
 
-Contains the adversarial AI logic for the mole.
-
-Zephyr uses a **depth-limited Minimax-style decision process** during interrogation to decide whether to tell the truth or lie.
+Contains the adversarial AI logic used by the mole, Zephyr. The AI uses Minimax-style reasoning to decide whether Zephyr should tell the truth or lie during interrogation.
 
 ---
 
-# 🧩 Game Flow
+# 🎮 Game Flow
 
 The investigation follows this sequence:
 
 ```text
 LABORATORY
-     ↓
+      ↓
 Solve Laboratory clue
-     ↓
-Get PIN digit: 4
-     ↓
+      ↓
+PIN digit = 4
+      ↓
 STORAGE
-     ↓
+      ↓
 Solve BREEZE riddle
-     ↓
-        50/50
-       /    \
-      /      \
- FOUND      NOT FOUND
-   |            |
-   |         CAFETERIA
-   |            |
-   |       Evidence found
-   |            |
-   └──────┬─────┘
-          ↓
-     Enter PIN 4619
-          ↓
-  Check Storage + Cafeteria
-          ↓
-     ┌────┴────┐
-     ↓         ↓
-   BOTH      NOT BOTH
-   FOUND      FOUND
-     ↓         ↓
-  WORDLE     SKIP WORDLE
-     └────┬────┘
-          ↓
-   INTERROGATION
-          ↓
- Ask everyone:
- "Where were you at 11:50 PM?"
-          ↓
+      ↓
+BREEZE solved
+      ↓
+CAFETERIA PIN CLUE UNLOCKED
+      ↓
+CAFETERIA
+      ↓
+PIN clue = ??19
+      ↓
+PIN = 4619
+      ↓
+VENTILATION OVERRIDE CLUE
+50/50 RANDOMIZED
+      ↓
+ ┌───────────────────┐
+ │                   │
+FOUND             NOT FOUND
+ │                   │
+ ↓                   ↓
+Cafe found        Cafe found
+ │                   │
+ ↓                   ↓
+WORDLE             SKIP WORDLE
+ │                   │
+ └─────────┬─────────┘
+           ↓
+     INTERROGATION
+           ↓
+Ask everyone:
+"Where were you at 11:50 PM?"
+           ↓
+Zephyr uses Minimax
+to choose truth or lie
+           ↓
       ACCUSATION
 ```
 
@@ -144,7 +98,7 @@ Solve BREEZE riddle
 
 The player begins in the Laboratory.
 
-The Laboratory clue contains exactly four lines:
+The Laboratory clue contains exactly these four lines:
 
 ```text
 Filter pressure was stable before midnight.
@@ -153,7 +107,7 @@ Up and active Raven's workstation.
 Recorded interruption at 11:52 PM.
 ```
 
-Solving the Laboratory investigation gives the first PIN digit:
+Solving the Laboratory investigation provides the first PIN digit:
 
 ```text
 4
@@ -165,7 +119,7 @@ Solving the Laboratory investigation gives the first PIN digit:
 
 The player then investigates Storage.
 
-The Storage puzzle is a riddle.
+Storage contains the **BREEZE riddle**.
 
 The correct answer is:
 
@@ -173,202 +127,236 @@ The correct answer is:
 BREEZE
 ```
 
-After correctly solving the riddle, the game performs a genuine **50/50 random check**.
+The BREEZE riddle is **not randomized**.
 
-There are two possible outcomes:
+The player must correctly solve BREEZE in order to progress to the Cafeteria PIN clue.
 
-### Evidence Found
-
-The Storage evidence is added to the player's evidence.
-
-### Evidence Not Found
-
-The Storage evidence is not added.
-
-The player is **not told that Zephyr caused the missing evidence**.
-
-This is intentional because the player should have to reason about the case rather than being given the mole's actions directly.
-
-Storage is the **only randomized evidence location**.
+```text
+Storage
+   ↓
+Solve BREEZE
+   ↓
+Cafeteria PIN clue becomes available
+```
 
 ---
 
 # 🍽️ Cafeteria
 
-The Cafeteria is different from Storage.
+After solving the BREEZE riddle, the player can access the Cafeteria PIN clue.
 
-The Cafeteria clue is **always found**.
-
-There is no 50/50 random chance for the Cafeteria.
-
-The Cafeteria clue provides the remaining PIN information:
+The Cafeteria clue provides:
 
 ```text
 ??19
 ```
 
-Combined with the Laboratory and Storage information, the correct PIN is:
+Together with the Laboratory digit and Storage information, the player determines the correct PIN:
 
 ```text
 4619
 ```
+
+The Cafeteria clue is **always found**.
+
+There is no 50/50 randomization for the Cafeteria clue.
 
 ---
 
-# 🔐 Security PIN
+# 🌬️ Ventilation Override Evidence
 
-The player must enter:
-
-```text
-4619
-```
-
-The PIN is constructed from:
+The important randomized clue is:
 
 ```text
-Laboratory = 4
-Storage answer length = 6
-Cafeteria = 19
+A ventilation override was recorded at 11:50 PM.
 ```
 
-Therefore:
+This clue has a genuine **50/50 chance of being found**.
+
+The BREEZE riddle does **not** determine whether the ventilation clue is found.
+
+Instead:
 
 ```text
-4 + 6 + 19 = 4619
+BREEZE
+  ↓
+Unlock Cafeteria PIN clue
+  ↓
+Ventilation Override
+  ↓
+50/50 FOUND / NOT FOUND
 ```
+
+There are therefore two possible evidence states.
+
+### Evidence Found
+
+```text
+Ventilation override = FOUND
+Cafeteria evidence = FOUND
+```
+
+The player has both pieces of evidence required to activate the Wordle challenge.
+
+### Evidence Not Found
+
+```text
+Ventilation override = NOT FOUND
+Cafeteria evidence = FOUND
+```
+
+The player continues the investigation, but the Wordle challenge is skipped.
+
+The player is **not told that Zephyr caused the missing evidence**.
+
+The absence of the clue is deliberately left ambiguous.
 
 ---
 
 # 🟩 Wordle Challenge
 
-The Wordle challenge is activated only when:
+Wordle is activated only when **both** required evidence conditions are satisfied:
 
 ```python
-storage_evidence_found and cafeteria_evidence_found
+ventilation_override_found and cafeteria_evidence_found
 ```
 
-Both pieces of evidence must exist.
-
-Because the Cafeteria clue is always found, the Storage evidence determines whether the Wordle is reached in a particular playthrough.
-
-However, the game logic explicitly checks **both** evidence states.
-
-If both are found:
+### If both are found:
 
 ```text
-Security unlocked
-       ↓
-     Wordle
-       ↓
- Interrogation
+Ventilation evidence → FOUND
+Cafeteria evidence → FOUND
+                ↓
+              WORDLE
 ```
 
-If both are not found:
+### If ventilation evidence is missing:
 
 ```text
-Security unlocked
-       ↓
- Wordle skipped
-       ↓
- Interrogation
+Ventilation evidence → NOT FOUND
+Cafeteria evidence → FOUND
+                ↓
+          WORDLE SKIPPED
 ```
 
-Skipping the Wordle does **not** automatically make Zephyr suspicious.
+Skipping Wordle does **not** directly make Zephyr suspicious.
 
-The player is not told that Zephyr intentionally skipped or sabotaged the challenge.
+The player should not receive a message saying that Zephyr deliberately skipped or sabotaged the challenge.
 
 ---
 
 # 🤖 Adversarial AI
 
-The mole is:
+The hidden mole is:
 
 ```text
 Zephyr
 ```
 
-The AI is designed around adversarial decision-making.
+Zephyr is controlled by an adversarial AI.
 
-The basic model is:
+The AI models the interaction as:
 
 ```text
-Zephyr = MAX player
-Detective = MIN player
+Zephyr = MAX
+Detective = MIN
 ```
 
 Zephyr attempts to maximize his chances of avoiding detection.
 
 The detective attempts to minimize Zephyr's advantage.
 
-The AI evaluates factors such as:
-
-* Suspicion
-* Contradictions
-* Physical evidence
-* Storage evidence state
-* Cafeteria evidence
-* Security state
-* Wordle outcome
+The AI considers the current game state, including the available evidence.
 
 ---
 
-# 🕵️ Interrogation
+# 🧠 Evidence-Aware Interrogation
 
-During interrogation, every character is asked the same question:
+After the investigation, the player interrogates all suspects.
 
-> Where were you at 11:50 PM?
-
-The important point is that **Zephyr does not always tell the truth**.
-
-The AI evaluates two possible actions:
+Everyone is asked:
 
 ```text
-TELL TRUTH
-     vs
-LIE
+Where were you at 11:50 PM?
 ```
 
-The Minimax-style search evaluates the possible consequences of both choices.
+Zephyr's response is different from the other suspects.
 
-The option that gives Zephyr the better adversarial outcome is selected.
-
-The player only sees Zephyr's resulting statement.
-
-The internal AI decision is hidden.
-
----
-
-# 🧠 Hidden Evidence State
-
-The AI receives the actual evidence state of the game.
-
-There are two important states:
-
-### State 1 — Storage Found
+The AI chooses between:
 
 ```text
-Storage evidence = FOUND
+TELL THE TRUTH
+        vs
+       LIE
+```
+
+using Minimax-style adversarial reasoning.
+
+The decision is based on the actual evidence state.
+
+For example:
+
+### State A — Ventilation Evidence Found
+
+```text
+Ventilation override = FOUND
 Cafeteria evidence = FOUND
 ```
 
-This gives the detective more physical evidence.
+Zephyr must account for the fact that the player has the ventilation evidence.
 
-### State 2 — Storage Not Found
+### State B — Ventilation Evidence Not Found
 
 ```text
-Storage evidence = NOT FOUND
+Ventilation override = NOT FOUND
 Cafeteria evidence = FOUND
 ```
 
-This gives the detective less physical evidence.
+Zephyr has less physical evidence to worry about and may therefore choose a different response.
 
-The AI considers the actual state when deciding how Zephyr responds during interrogation.
+The player does **not** see the internal AI calculation.
 
-The player does not receive the internal AI reasoning.
+They only see Zephyr's final answer.
 
 ---
 
-# 👥 Characters
+# 🌬️ Connection Between Evidence and Zephyr
+
+The ventilation override clue is important because it is connected to the interrogation.
+
+The player may discover:
+
+```text
+A ventilation override was recorded at 11:50 PM.
+```
+
+and then compare that information with Zephyr's answer to:
+
+```text
+Where were you at 11:50 PM?
+```
+
+This creates the deduction mechanic.
+
+The player must determine whether Zephyr's statement is consistent with the available evidence.
+
+The game does **not** simply announce:
+
+```text
+Zephyr sabotaged the ventilation system.
+```
+
+or:
+
+```text
+Zephyr hid the clue.
+```
+
+Instead, the player has to infer what happened from the evidence and interrogation.
+
+---
+
+# 👥 Suspects
 
 The suspects are:
 
@@ -386,180 +374,169 @@ The actual mole is:
 Zephyr
 ```
 
-The player must determine this through investigation rather than being directly told by the game.
+The player must identify Zephyr through deduction.
 
 ---
 
-# 🎯 Objective
+# 🔐 PIN
 
-The player's objective is to:
+The correct security PIN is:
+
+```text
+4619
+```
+
+The PIN is constructed from the investigation:
+
+```text
+Laboratory → 4
+Storage/BREEZE → 6
+Cafeteria → 19
+```
+
+Therefore:
+
+```text
+4619
+```
+
+---
+
+# 🎯 Player Objective
+
+The player must:
 
 1. Investigate the Laboratory.
 2. Solve the Laboratory clue.
-3. Obtain the first PIN digit.
+3. Obtain the PIN digit `4`.
 4. Investigate Storage.
 5. Solve the `BREEZE` riddle.
-6. Discover whether Storage evidence is available.
+6. Unlock the Cafeteria PIN clue.
 7. Investigate the Cafeteria.
-8. Obtain the Cafeteria evidence.
+8. Obtain the `??19` PIN information.
 9. Enter PIN `4619`.
-10. Complete the Wordle challenge if both required evidence pieces exist.
-11. Interrogate every suspect.
-12. Compare their statements with the evidence.
-13. Accuse the correct mole.
+10. Determine whether the ventilation override clue is found.
+11. Play Wordle only if the required evidence is present.
+12. Interrogate every suspect.
+13. Ask everyone where they were at 11:50 PM.
+14. Analyze Zephyr's AI-generated truth/lie response.
+15. Accuse the mole.
 
-The correct mole is:
+---
+
+# 🎲 Randomization
+
+Only the **ventilation override evidence** is randomized.
+
+The probability is:
 
 ```text
-ZEphyr
+50% → Evidence Found
+50% → Evidence Not Found
 ```
 
-or, with normal capitalization:
+The BREEZE riddle is always solvable with:
 
 ```text
-Zephyr
+BREEZE
 ```
+
+The Cafeteria clue is always available after BREEZE is solved.
+
+---
+
+# 🕵️ Core Design Principle
+
+The game is designed around **uncertainty and deduction**.
+
+The player knows:
+
+```text
+There is a mole.
+```
+
+But the player does not automatically know:
+
+```text
+When the mole acted
+How the mole acted
+What evidence is missing
+Whether Zephyr is telling the truth
+```
+
+The game therefore avoids directly exposing the mole's hidden actions.
+
+Instead, the player must combine:
+
+* Laboratory information
+* The BREEZE puzzle
+* Cafeteria PIN information
+* The randomized ventilation evidence
+* Wordle results
+* Suspect statements
+* Zephyr's Minimax-controlled interrogation response
+
+to reach the final accusation.
 
 ---
 
 # 🛠️ Requirements
 
-You need Python installed on your computer.
-
-Install the required dependency:
+Install Python and Streamlit.
 
 ```bash
 pip install streamlit
 ```
 
-If the project contains additional dependencies, install them according to your environment.
-
 ---
 
 # ▶️ Running the Game
 
-Open a terminal in the project directory.
-
-Run:
+From the project directory, run:
 
 ```bash
 streamlit run app.py
 ```
 
-Streamlit will start the application and provide a local URL.
-
-Open that URL in your browser to play the game.
+Then open the Streamlit application in your browser.
 
 ---
 
-# 🎲 Randomness
+# 🧪 Syntax Testing
 
-Storage uses a real 50/50 random event.
-
-The game uses Python's random number generator:
-
-```python
-random.Random(seed)
-```
-
-If a seed is supplied, the result can be reproduced for testing.
-
-If no seed is supplied, the game produces a normal random outcome.
-
----
-
-# 🔎 Important Design Rules
-
-The game intentionally follows these rules:
-
-### 1. Storage is the only randomized evidence
-
-```text
-Storage → 50/50
-Cafeteria → Always found
-```
-
-### 2. The player does not see sabotage decisions
-
-The game does not tell the player:
-
-```text
-"Zephyr sabotaged Storage."
-```
-
-or:
-
-```text
-"Zephyr skipped the Wordle."
-```
-
-### 3. Missing evidence does not directly identify Zephyr
-
-A missing clue is part of the uncertainty of the investigation.
-
-### 4. Wordle depends on evidence
-
-Wordle requires:
-
-```text
-Storage evidence = FOUND
-AND
-Cafeteria evidence = FOUND
-```
-
-### 5. Zephyr's interrogation response is AI-controlled
-
-The AI chooses between:
-
-```text
-Truth
-Lie
-```
-
-based on the current game/evidence state.
-
-### 6. The player always asks the same interrogation question
-
-```text
-Where were you at 11:50 PM?
-```
-
----
-
-# 🧪 Testing
-
-The Python files can be syntax-checked using:
+The Python files can be checked with:
 
 ```bash
 python -m py_compile app.py game.py case.py evidence.py ai_agent.py
 ```
 
-If no output is produced, the files passed the Python syntax check.
+If the command produces no errors, the Python files passed the syntax check.
 
 ---
 
-# 📌 Technologies Used
+# 📌 Technologies
 
-* **Python**
-* **Streamlit**
-* **Randomized game mechanics**
-* **Adversarial search**
-* **Minimax-style AI**
-* **Puzzle/riddle mechanics**
-* **Evidence-based deduction**
+* Python
+* Streamlit
+* Randomized evidence mechanics
+* Puzzle/riddle mechanics
+* Evidence-based deduction
+* Adversarial search
+* Minimax-style AI
+* Interactive interrogation
 
 ---
 
-# 🏁 Final Goal
+# 🏁 Final Mystery
 
-The game is designed as an adversarial detective experience.
+The central mystery is not simply:
 
-The player investigates incomplete evidence while the hidden mole attempts to survive interrogation.
+> "Who is the mole?"
 
-The key challenge is not simply solving puzzles — it is determining **which evidence can be trusted, what information is missing, and whether a suspect's statement is truthful**.
+The real challenge is determining **what happened at 11:50 PM**, whether the available evidence supports the suspects' stories, and whether Zephyr's interrogation response is truthful.
 
-The final objective is to identify:
+The player must use the evidence rather than being explicitly told what Zephyr did.
 
 ```text
-🕵️ THE MOLE: ZEPHYR
+🧟 THE MOLE: ZEPHYR
 ```
