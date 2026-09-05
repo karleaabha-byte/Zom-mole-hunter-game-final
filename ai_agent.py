@@ -4,10 +4,10 @@ Strategic Adversarial Mole AI for Zom-Mole Hunter.
 Zephyr is not trying to sabotage everything.
 
 Zephyr's objective is to:
-    1. Make the detective's investigation harder.
-    2. Avoid becoming too suspicious.
-    3. Avoid creating contradictions.
-    4. Delay access to useful evidence when it is worth the risk.
+    1. Avoid becoming too suspicious.
+    2. Avoid creating contradictions.
+    3. Adapt his interrogation response to the evidence the detective actually found.
+    4. Choose truth or lie when that improves his chances of avoiding detection.
 
 The AI uses depth-limited Minimax.
 
@@ -84,23 +84,20 @@ class MoleAI:
             score -= 30
 
         # --------------------------------------------------------
-        # PHYSICAL EVIDENCE
+        # VENTILATION EVIDENCE
         # --------------------------------------------------------
 
-        storage_found = getattr(state, "storage_evidence_found", False)
-        cafe_found = getattr(state, "cafeteria_evidence_found", False)
-
-        if storage_found:
-            # Storage evidence is direct physical evidence against Zephyr.
-            score -= 35
+        if getattr(
+            state,
+            "ventilation_override_found",
+            False
+        ):
+            # Physical evidence of the 11:50 PM override makes
+            # Zephyr's position more dangerous.
+            score -= 18
         else:
-            # No Storage evidence means less material for the detective.
-            score += 20
-
-        if cafe_found:
-            # Cafeteria evidence is always present and therefore must be
-            # considered by the interrogation Minimax.
-            score -= 5
+            # Missing evidence leaves Zephyr more room to maneuver.
+            score += 8
 
         # --------------------------------------------------------
         # SECURITY
@@ -550,40 +547,153 @@ class MoleAI:
     ):
 
         """
-        Decide whether the hidden secondary security lock activates.
+        Decide whether Zephyr should activate the Wordle lock.
 
-        The player does not know this is a Zephyr decision.  The only
-        evidence state that can exist at this point is: 
+        This is an actual adversarial decision.
 
-            Storage FOUND + Cafeteria FOUND
-            Storage NOT FOUND + Cafeteria FOUND
+        Option A:
+            Activate Wordle
+            + delays interrogation
+            - raises suspicion
+            - looks like tampering
 
-        The lock activates only when both physical clues are present.
-        Cafeteria evidence is guaranteed; Storage evidence is the only
-        randomized clue.
+        Option B:
+            Do not activate
+            + Zephyr appears cooperative
+            - detective gets interrogation access
         """
 
+        # --------------------------------------------------------
+        # No game state
+        # --------------------------------------------------------
+
         if game_state is None:
-            return False
 
-        storage_found = bool(
-            getattr(game_state, "storage_evidence_found", False)
-        )
-        cafe_found = bool(
-            getattr(game_state, "cafeteria_evidence_found", False)
+            current_suspicion = (
+                suspicion
+                if suspicion is not None
+                else 10
+            )
+
+            # Low suspicion:
+            # worth taking the risk.
+            if current_suspicion < 45:
+
+                activate = True
+
+            else:
+
+                activate = False
+
+            if activate:
+
+                self.security_sabotage_count += 1
+
+                self.decisions_log.append(
+                    "Zephyr chose to "
+                    "ACTIVATE THE SECURITY LOCK."
+                )
+
+            else:
+
+                self.security_skip_count += 1
+
+                self.decisions_log.append(
+                    "Zephyr chose to "
+                    "ALLOW INTERROGATION."
+                )
+
+            return activate
+
+        # --------------------------------------------------------
+        # Simulate both choices
+        # --------------------------------------------------------
+
+        sabotage_state = self._copy_state(
+            game_state
         )
 
-        activate = storage_found and cafe_found
+        help_state = self._copy_state(
+            game_state
+        )
+
+        sabotage_score = (
+            self._simulate_security_action(
+                sabotage_state,
+                True
+            )
+        )
+
+        help_score = (
+            self._simulate_security_action(
+                help_state,
+                False
+            )
+        )
+
+        # --------------------------------------------------------
+        # Detective MIN response
+        # --------------------------------------------------------
+
+        sabotage_score = (
+            self._security_detective_response(
+                sabotage_state,
+                sabotage_score
+            )
+        )
+
+        help_score = (
+            self._security_detective_response(
+                help_state,
+                help_score
+            )
+        )
+
+        # --------------------------------------------------------
+        # Zephyr MAX
+        # --------------------------------------------------------
+
+        if sabotage_score > help_score:
+
+            activate = True
+
+        elif help_score > sabotage_score:
+
+            activate = False
+
+        else:
+
+            # Tie breaker based on suspicion.
+            current_suspicion = getattr(
+                game_state,
+                "suspicion",
+                10
+            )
+
+            activate = (
+                current_suspicion < 50
+            )
+
+        # --------------------------------------------------------
+        # Record decision
+        # --------------------------------------------------------
 
         if activate:
+
             self.security_sabotage_count += 1
+
             self.decisions_log.append(
-                "Zephyr activated the hidden secondary security lock."
+                "Zephyr chose to "
+                "ACTIVATE THE SECURITY LOCK."
             )
+
         else:
+
             self.security_skip_count += 1
+
             self.decisions_log.append(
-                "Zephyr did not activate the hidden secondary security lock."
+                "Zephyr chose to "
+                "ALLOW INTERROGATION."
             )
 
         return activate
@@ -891,14 +1001,6 @@ class MoleAI:
                 # Truth gives detective useful information.
                 score -= 10
 
-                if getattr(state, "storage_evidence_found", False):
-                    # With Storage evidence present, a truthful alibi gives
-                    # the detective a clean comparison point.
-                    score -= 15
-                else:
-                    # Without Storage evidence, truth is less damaging.
-                    score -= 5
-
                 # But credibility improves.
                 score += 8
 
@@ -923,16 +1025,7 @@ class MoleAI:
                 # A lie conceals useful information.
                 score += 15
 
-                if getattr(state, "storage_evidence_found", False):
-                    # Storage evidence gives the detective more opportunity
-                    # to challenge a lie.
-                    score -= 15
-                else:
-                    # When Storage evidence is absent, a lie is harder to
-                    # disprove from physical evidence.
-                    score += 8
-
-                # Suspicion is dangerous.
+                # But suspicion is dangerous.
                 score -= 18
 
                 # Potential contradiction.
