@@ -51,7 +51,7 @@ class GameState:
         # ----------------------------------------------------
 
         # Actions are unlimited.
-        # We keep track of how many the player has used
+        # We keep track of how many actions the player has used
         # for the final case report/statistics.
 
         self.actions_used = 0
@@ -104,9 +104,16 @@ class GameState:
 
         self.wordle_failed = False
 
+        # ----------------------------------------------------
+        # STORAGE / CAFETERIA EVIDENCE
+        # ----------------------------------------------------
+
         self.storage_riddle_solved = False
+
         self.storage_evidence_found = False
+
         self.storage_roll = None
+
         self.cafeteria_evidence_found = False
 
 
@@ -148,12 +155,14 @@ class GameState:
                 "The case is already closed."
             )
 
+
         if room in self.visited_rooms:
 
             return (
                 False,
                 f"You've already investigated the {room}."
             )
+
 
         if room not in ROOMS:
 
@@ -185,7 +194,9 @@ class GameState:
         elif room == "Storage":
 
             clue = case.get_storage_clue()
+
             self.room_decisions[room] = "awaiting_riddle"
+
             self._log(
                 "📦 Storage riddle discovered. Solve BREEZE "
                 "to determine whether the evidence can be recovered."
@@ -228,6 +239,7 @@ class GameState:
             f"🔎 Investigated the {room}."
         )
 
+
         return (
             True,
             clue
@@ -241,32 +253,82 @@ class GameState:
     def solve_storage_riddle(self, answer):
 
         if "Storage" not in self.visited_rooms:
-            return False, "Investigate Storage first."
+
+            return (
+                False,
+                "Investigate Storage first."
+            )
+
 
         if self.storage_riddle_solved:
-            return True, "FOUND" if self.storage_evidence_found else "NOT_FOUND"
+
+            return (
+                True,
+                "FOUND"
+                if self.storage_evidence_found
+                else "NOT_FOUND"
+            )
+
 
         if str(answer).strip().upper() != "BREEZE":
+
             self.actions_used += 1
+
             self.suspicion += 2
+
             self._clamp_suspicion()
-            self._log("❌ Incorrect Storage riddle answer.")
-            return False, "Incorrect answer. Try again."
+
+            self._log(
+                "❌ Incorrect Storage riddle answer."
+            )
+
+            return (
+                False,
+                "Incorrect answer. Try again."
+            )
+
 
         self.storage_riddle_solved = True
+
         self.actions_used += 1
+
         self.storage_roll = self.rng.random() < 0.5
+
         self.storage_evidence_found = self.storage_roll
 
-        if self.storage_evidence_found:
-            self.evidence.add_clue("storage_riddle")
-            self.room_decisions["Storage"] = "evidence_found"
-            self._log("🔎 Storage evidence FOUND (50/50 result).")
-            return True, "FOUND"
 
-        self.room_decisions["Storage"] = "evidence_not_found"
-        self._log("❌ Storage evidence NOT FOUND (50/50 result).")
-        return True, "NOT_FOUND"
+        if self.storage_evidence_found:
+
+            self.evidence.add_clue(
+                "storage_riddle"
+            )
+
+            self.room_decisions["Storage"] = (
+                "evidence_found"
+            )
+
+            self._log(
+                "🔎 Storage evidence FOUND (50/50 result)."
+            )
+
+            return (
+                True,
+                "FOUND"
+            )
+
+
+        self.room_decisions["Storage"] = (
+            "evidence_not_found"
+        )
+
+        self._log(
+            "❌ Storage evidence NOT FOUND (50/50 result)."
+        )
+
+        return (
+            True,
+            "NOT_FOUND"
+        )
 
 
     # ========================================================
@@ -278,6 +340,7 @@ class GameState:
         if self.pin_cracked:
 
             return True
+
 
         if not self.can_act():
 
@@ -292,11 +355,13 @@ class GameState:
 
         self.pin_attempts += 1
 
+
         digits = "".join(
             character
             for character in str(guess)
             if character.isdigit()
         )
+
 
         correct = (
             digits == case.CORRECT_PIN
@@ -319,13 +384,14 @@ class GameState:
             )
 
 
-            # Wordle is controlled by the hidden evidence state.
-            # Cafeteria evidence is always present, so Wordle activates
-            # exactly when BOTH Storage and Cafeteria evidence exist.
+            # Wordle activates only when BOTH
+            # Storage and Cafeteria evidence exist.
+
             activate_challenge = (
                 self.storage_evidence_found
                 and self.cafeteria_evidence_found
             )
+
 
             if activate_challenge:
 
@@ -337,6 +403,7 @@ class GameState:
                     "🚨 SECONDARY SECURITY LOCK ACTIVATED."
                 )
 
+
             else:
 
                 self.security_challenge_active = False
@@ -346,6 +413,7 @@ class GameState:
                 self._log(
                     "🔓 INTERROGATION SYSTEM UNLOCKED."
                 )
+
 
             return True
 
@@ -452,49 +520,80 @@ class GameState:
 
         answer = self.wordle_answer
 
-        result = []
+
+        # ====================================================
+        # WORDLE RESULT
+        # ====================================================
+
+        # Start with every tile gray.
+
+        result = [
+            "⬛",
+            "⬛",
+            "⬛",
+            "⬛",
+            "⬛"
+        ]
 
 
         # ----------------------------------------------------
-# WORDLE RESULT
-# ----------------------------------------------------
+        # COUNT LETTERS IN ANSWER
+        # ----------------------------------------------------
 
-# Start with everything gray
-result = ["⬛"] * 5
+        # This is important for repeated letters.
+        #
+        # Example:
+        #
+        # Answer: VENTS
+        # Guess:  FENCE
+        #
+        # There is only ONE E in VENTS, so only one E
+        # in the guess can receive a green/yellow result.
 
-# Track how many times each letter appears in the answer
-remaining = {}
+        remaining = {}
 
-for letter in answer:
-    remaining[letter] = remaining.get(letter, 0) + 1
+        for letter in answer:
 
-
-# ----------------------------------------------------
-# FIRST PASS — CORRECT POSITION (GREEN)
-# ----------------------------------------------------
-
-for index, letter in enumerate(guess):
-
-    if letter == answer[index]:
-        result[index] = "🟩"
-        remaining[letter] -= 1
+            remaining[letter] = (
+                remaining.get(letter, 0) + 1
+            )
 
 
-# ----------------------------------------------------
-# SECOND PASS — WRONG POSITION (YELLOW)
-# ----------------------------------------------------
+        # ----------------------------------------------------
+        # FIRST PASS — CORRECT POSITION = GREEN
+        # ----------------------------------------------------
 
-for index, letter in enumerate(guess):
+        for index, letter in enumerate(guess):
 
-    # Already green
-    if result[index] == "🟩":
-        continue
+            if letter == answer[index]:
 
-    # Letter exists in answer and has not already
-    # been used by another green/yellow tile
-    if remaining.get(letter, 0) > 0:
-        result[index] = "🟨"
-        remaining[letter] -= 1
+                result[index] = "🟩"
+
+                remaining[letter] -= 1
+
+
+        # ----------------------------------------------------
+        # SECOND PASS — WRONG POSITION = YELLOW
+        # ----------------------------------------------------
+
+        for index, letter in enumerate(guess):
+
+            # Do not process letters that are already green.
+
+            if result[index] == "🟩":
+
+                continue
+
+
+            # Only mark yellow if the answer still has an
+            # unused occurrence of that letter.
+
+            if remaining.get(letter, 0) > 0:
+
+                result[index] = "🟨"
+
+                remaining[letter] -= 1
+
 
         # ====================================================
         # CORRECT
@@ -514,7 +613,9 @@ for index, letter in enumerate(guess):
                 True,
                 {
                     "status": "CORRECT",
+
                     "result": result,
+
                     "attempts_remaining": (
                         self.wordle_max_attempts
                         - len(self.wordle_attempts)
@@ -544,7 +645,9 @@ for index, letter in enumerate(guess):
                 False,
                 {
                     "status": "FAILED",
+
                     "result": result,
+
                     "attempts_remaining": 0
                 }
             )
@@ -558,7 +661,9 @@ for index, letter in enumerate(guess):
             True,
             {
                 "status": "CONTINUE",
+
                 "result": result,
+
                 "attempts_remaining": (
                     self.wordle_max_attempts
                     - len(self.wordle_attempts)
@@ -685,6 +790,7 @@ for index, letter in enumerate(guess):
 
             lied = not tell_truth
 
+
         else:
 
             answer_data = case.get_question(
@@ -740,6 +846,7 @@ for index, letter in enumerate(guess):
                     "⚠️ Zephyr's answer feels rehearsed."
                 )
 
+
             else:
 
                 self.suspicion -= 2
@@ -748,6 +855,7 @@ for index, letter in enumerate(guess):
                     "🔎 Zephyr gave a surprisingly "
                     "straightforward answer."
                 )
+
 
         else:
 
@@ -782,6 +890,7 @@ for index, letter in enumerate(guess):
             new_contradictions = (
                 self.evidence.detect_contradictions()
             )
+
 
         except AttributeError:
 
@@ -840,6 +949,7 @@ for index, letter in enumerate(guess):
         if character == case.MOLE:
 
             self.result = "win"
+
 
         else:
 
