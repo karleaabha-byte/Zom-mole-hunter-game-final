@@ -1,5 +1,3 @@
-
-
 # ============================================================
 # CASE BASICS
 # ============================================================
@@ -229,7 +227,8 @@ ANSWERS = {
         "alibi": {
             "answer": (
                 "In Storage. I was checking the filter inventory. "
-                "I didn't think anything was wrong."
+                "A ventilation override was recorded at 11:50 PM, "
+                "but I didn't think anything was wrong."
             ),
             "truth_answer": (
                 "In Storage. I was checking the filter inventory. "
@@ -305,10 +304,18 @@ STORAGE_CLUE = {
         "Sailors welcome me when I am gentle, but fear what I become when I grow wild.",
         "What am I?"
     ],
+}
 
-    "note": (
+
+# ============================================================
+# VENTILATION OVERRIDE EVIDENCE
+# ============================================================
+
+VENTILATION_OVERRIDE_CLUE = {
+    "title": "VENTILATION OVERRIDE RECORD",
+    "lines": [
         "A ventilation override was recorded at 11:50 PM."
-    )
+    ]
 }
 
 
@@ -400,6 +407,10 @@ CAFETERIA_SABOTAGED_CLUE = {
 }
 
 
+def get_ventilation_override_clue():
+    return VENTILATION_OVERRIDE_CLUE
+
+
 # ============================================================
 # HELPER FUNCTIONS
 # ============================================================
@@ -426,10 +437,19 @@ def get_question(character, question_key):
     return ANSWERS[character][question_key]
 
 
-def get_answer(character, question_key, tell_truth=True):
+def get_answer(character, question_key, tell_truth=True, ventilation_found=False):
     data = ANSWERS[character][question_key]
 
     if tell_truth and "truth_answer" in data:
+        if (
+            character == MOLE
+            and question_key == "alibi"
+            and not ventilation_found
+        ):
+            return (
+                "In Storage. I was checking the filter inventory. "
+                "I didn't think anything was wrong."
+            )
         return data["truth_answer"]
 
     if not tell_truth and "lie_answer" in data:
@@ -440,3 +460,4 @@ def get_answer(character, question_key, tell_truth=True):
 
 def get_profile(character):
     return PROFILES[character]
+
