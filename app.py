@@ -1205,9 +1205,22 @@ st.title(
     "🧟 ZOM-MOLE HUNTER"
 )
 
-st.caption(
-    f"Detective Case File: "
-    f"{st.session_state.detective_name}"
+st.markdown(
+    f"""
+    <div style="
+        height: 48px;
+        color: rgba(255,255,255,0.65);
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 8px;
+    ">
+        {room_descriptions.get(
+            room,
+            "A location inside the facility."
+        )}
+    </div>
+    """,
+    unsafe_allow_html=True,
 )
 
 
