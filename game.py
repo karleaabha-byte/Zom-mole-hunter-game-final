@@ -147,48 +147,37 @@ class GameState:
     def visit_room(self, room):
 
         if not self.can_act():
-
             return (
                 False,
                 "No actions remaining."
             )
 
         if room in self.visited_rooms:
-
             return (
                 False,
                 f"You've already investigated the {room}."
             )
 
         if room not in ROOMS:
-
             return (
                 False,
                 "Unknown room."
             )
 
-
         # ====================================================
         # LABORATORY
         # ====================================================
-
         if room == "Laboratory":
-
             clue = case.get_lab_clue()
-
             self.evidence.add_clue(
                 "lab_acrostic"
             )
-
             self.room_decisions[room] = "neutral"
-
 
         # ====================================================
         # STORAGE
         # ====================================================
-
         elif room == "Storage":
-
             clue = case.get_storage_clue()
             self.room_decisions[room] = "awaiting_riddle"
             self._log(
@@ -196,20 +185,20 @@ class GameState:
                 "to determine whether the evidence can be recovered."
             )
 
-
-        # ----------------------------------------------------
-        # CLAMP SUSPICION
-        # ----------------------------------------------------
+        # ====================================================
+        # CAFETERIA
+        # ====================================================
+        elif room == "Cafeteria":
+            clue = case.get_cafeteria_clue()
+            self.room_decisions[room] = "pin_required"
+            self._log(
+                "🍽️ Cafeteria restocking log discovered. "
+                "Recover the missing PIN digits."
+            )
 
         self._clamp_suspicion()
 
-
-        # ----------------------------------------------------
-        # SAVE INVESTIGATION
-        # ----------------------------------------------------
-
         self.visited_rooms[room] = clue
-
         self.actions_used += 1
 
         self._log(
@@ -220,7 +209,6 @@ class GameState:
             True,
             clue
         )
-
 
     # ========================================================
     # PIN
