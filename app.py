@@ -516,6 +516,15 @@ st.markdown(
         box-shadow: 0 0 25px rgba(212, 175, 55, 0.2);
     }
 
+    .result-open {
+        background: #21152d;
+        border: 1px solid #5a3d8a;
+        border-left: 4px solid #c9a961;
+        border-radius: 8px;
+        padding: 25px;
+        text-align: center;
+    }
+
     </style>
     """,
     unsafe_allow_html=True,
@@ -725,7 +734,6 @@ def render_receipt(
             str(pin_digits)
         )
 
-
     if isinstance(
         redacted,
         str
@@ -749,7 +757,6 @@ def render_receipt(
 
         redacted_values = []
 
-
     html_output = (
         '<div class="receipt">'
     )
@@ -771,7 +778,6 @@ def render_receipt(
         '<div class="pin-display">'
         'Employee PIN: '
     )
-
 
     for index, digit in enumerate(
         digits
@@ -801,7 +807,6 @@ def render_receipt(
                 '</span>'
             )
 
-
     html_output += "</div>"
     html_output += "</div>"
 
@@ -822,7 +827,6 @@ def render_clue(
         st.write(clue)
 
         return
-
 
     # ========================================================
     # LABORATORY
@@ -855,7 +859,6 @@ def render_clue(
                 clue["description"]
             )
 
-
     # ========================================================
     # STORAGE
     # ========================================================
@@ -885,7 +888,6 @@ def render_clue(
                 clue["riddle"]
             )
 
-        # Show ventilation override note only if evidence was found
         if game.storage_riddle_solved and game.storage_evidence_found:
 
             st.info(
@@ -903,7 +905,6 @@ def render_clue(
             st.write(
                 clue["description"]
             )
-
 
     # ========================================================
     # CAFETERIA
@@ -996,7 +997,6 @@ if not st.session_state.case_started:
         """
     )
 
-
     st.html(
         """
         <div class="opening-story">
@@ -1075,9 +1075,7 @@ if not st.session_state.case_started:
         """
     )
 
-
     st.write("")
-
 
     st.html(
         """
@@ -1097,16 +1095,13 @@ if not st.session_state.case_started:
         """
     )
 
-
     detective_name = st.text_input(
         "Enter your detective name",
         placeholder="e.g. Detective Morgan",
         key="start_detective_name",
     )
 
-
     st.write("")
-
 
     if st.button(
         "🔎 ENTER THE CASE",
@@ -1128,7 +1123,6 @@ if not st.session_state.case_started:
             st.session_state.case_started = True
 
             st.rerun()
-
 
     st.stop()
 
@@ -1183,7 +1177,6 @@ with st.sidebar:
         f"**{len(game.evidence.clues_found)}**"
     )
 
-
     # ========================================================
     # SECURITY STATUS
     # ========================================================
@@ -1212,9 +1205,7 @@ with st.sidebar:
             "🔓 Interrogations unlocked"
         )
 
-
     st.divider()
-
 
     # ========================================================
     # CASE LOG
@@ -1242,9 +1233,7 @@ with st.sidebar:
                 "*No entries yet.*"
             )
 
-
     st.divider()
-
 
     if st.button(
         "🔄 START NEW CASE",
@@ -1282,151 +1271,6 @@ st.markdown(
 
 
 # ============================================================
-# END OF GAME
-# ============================================================
-
-if game.game_over:
-
-    st.divider()
-
-    if game.result == "win":
-
-        st.html(
-            """
-            <div class="verdict-box">
-
-                <h1>CASE SOLVED</h1>
-
-                <h2>
-                    THE MOLE HAS BEEN IDENTIFIED
-                </h2>
-
-                <p>
-                    Your accusation was correct.
-                    The evidence led you to the right suspect.
-                </p>
-
-            </div>
-            """
-        )
-
-    else:
-
-        st.html(
-            """
-            <div class="verdict-box">
-
-                <h1>CASE FAILED</h1>
-
-                <h2>
-                    THE MOLE GOT AWAY
-                </h2>
-
-                <p>
-                    Your accusation did not identify the Mole.
-                </p>
-
-            </div>
-            """
-        )
-
-        st.warning(
-            f"The real Mole was **{case.MOLE}**."
-        )
-
-
-    st.divider()
-
-    st.subheader(
-        "INVESTIGATION REPORT"
-    )
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-
-        st.metric(
-            "Actions Used",
-            game.actions_used
-        )
-
-    with col2:
-
-        st.metric(
-            "Scenes Searched",
-            len(game.visited_rooms)
-        )
-
-    with col3:
-
-        st.metric(
-            "Statements",
-            statement_count()
-        )
-
-
-    st.divider()
-
-    st.subheader(
-        "Your Accusation"
-    )
-
-    st.write(
-        f"**Suspect:** {game.accused}"
-    )
-
-
-    if game.result == "win":
-
-        st.success(
-            "Correct accusation."
-        )
-
-    else:
-
-        st.error(
-            "Incorrect accusation."
-        )
-
-
-    if st.session_state.final_evidence_saved:
-
-        st.divider()
-
-        st.subheader(
-            "Evidence You Selected"
-        )
-
-        for evidence in (
-            st.session_state.final_evidence_saved
-        ):
-
-            st.html(
-                '<span class="clue-chip">'
-                f'✓ {safe_html(evidence)}'
-                '</span>'
-            )
-
-
-    if st.session_state.final_reasoning_saved:
-
-        st.divider()
-
-        st.subheader(
-            "Your Reasoning"
-        )
-
-        st.html(
-            '<div class="quote-box">'
-            f'{safe_html(st.session_state.final_reasoning_saved)}'
-            '</div>'
-        )
-
-
-    st.stop()
-
-
-# ============================================================
 # MAIN GAME TABS
 # ============================================================
 
@@ -1435,12 +1279,14 @@ if game.game_over:
     tab_rooms,
     tab_people,
     tab_accuse,
+    tab_result,
 ) = st.tabs(
     [
         "📋 BACKGROUND",
         "🏚️ CRIME SCENES",
         "🗣️ INTERROGATIONS",
         "⚖️ ACCUSATION",
+        "📁 RESULT",
     ]
 )
 
@@ -1467,7 +1313,6 @@ with tab_background:
         {}
     )
 
-
     if isinstance(
         background,
         dict
@@ -1481,7 +1326,6 @@ with tab_background:
                 f'{safe_html(section)}'
                 '</div>'
             )
-
 
             if isinstance(
                 section_data,
@@ -1519,7 +1363,6 @@ with tab_background:
                                 '</div>'
                             )
 
-
                 if "notes" in section_data:
 
                     for note_text in section_data["notes"]:
@@ -1530,7 +1373,6 @@ with tab_background:
                             '</div>'
                         )
 
-
             else:
 
                 html_output += (
@@ -1539,13 +1381,11 @@ with tab_background:
                     '</div>'
                 )
 
-
             html_output += "</div>"
 
             st.html(
                 html_output
             )
-
 
     else:
 
@@ -1569,7 +1409,6 @@ with tab_rooms:
         "whatever evidence you can find."
     )
 
-
     room_descriptions = {
 
         "Laboratory":
@@ -1583,11 +1422,9 @@ with tab_rooms:
             "and one suspicious receipt.",
     }
 
-
     cols = st.columns(
         len(ROOMS)
     )
-
 
     for col, room in zip(
         cols,
@@ -1607,7 +1444,6 @@ with tab_rooms:
                 )
             )
 
-
             # =================================================
             # INVESTIGATED
             # =================================================
@@ -1625,7 +1461,6 @@ with tab_rooms:
                     clue
                 )
 
-
                 # =================================================
                 # STORAGE RIDDLE ANSWER
                 # =================================================
@@ -1633,7 +1468,10 @@ with tab_rooms:
                 if room == "Storage" and not game.storage_riddle_solved:
 
                     st.divider()
-                    st.markdown("**🧩 Solve the Storage Riddle**")
+
+                    st.markdown(
+                        "**🧩 Solve the Storage Riddle**"
+                    )
 
                     storage_answer = st.text_input(
                         "What is the answer?",
@@ -1651,28 +1489,30 @@ with tab_rooms:
                         )
 
                         if success and result == "FOUND":
+
                             st.success(
                                 "🔎 Storage evidence FOUND! "
                                 "The ventilation override record is recoverable."
                             )
+
                         elif success and result == "NOT_FOUND":
+
                             st.warning(
                                 "❌ Storage evidence NOT FOUND. "
                                 "The 50/50 search failed to recover it."
                             )
+
                         else:
-                            st.error(str(result))
+
+                            st.error(
+                                str(result)
+                            )
 
                         st.rerun()
 
-
                 elif room == "Storage" and game.storage_riddle_solved:
 
-                    # After solving the riddle, the player sees
-                    # nothing unless evidence was found.
-                    # Discovery is silent.
                     pass
-
 
                 # =================================================
                 # CAFETERIA PIN
@@ -1686,13 +1526,11 @@ with tab_rooms:
                         "**🔐 Crack the Employee PIN**"
                     )
 
-
                     if game.pin_cracked:
 
                         st.success(
                             "🔓 PIN CRACKED"
                         )
-
 
                         # ----------------------------------------
                         # SECURITY CHALLENGE ACTIVE
@@ -1727,7 +1565,6 @@ with tab_rooms:
                                 </div>
                                 """
                             )
-
 
                         else:
 
@@ -1768,7 +1605,6 @@ with tab_rooms:
                                 """
                             )
 
-
                     else:
 
                         pin_guess = st.text_input(
@@ -1777,7 +1613,6 @@ with tab_rooms:
                             key="pin_guess",
                             disabled=not game.can_act(),
                         )
-
 
                         if st.button(
                             "🔓 VERIFY PIN",
@@ -1789,7 +1624,6 @@ with tab_rooms:
                             pin_correct = game.attempt_pin(
                                 pin_guess
                             )
-
 
                             if pin_correct:
 
@@ -1806,12 +1640,10 @@ with tab_rooms:
 
                             st.rerun()
 
-
                         st.caption(
                             "PIN attempts are unlimited. "
                             "Use the evidence to determine the correct code."
                         )
-
 
             # =================================================
             # NOT INVESTIGATED
@@ -1851,7 +1683,6 @@ with tab_people:
         "🗣️ Interrogation Room"
     )
 
-
     # ========================================================
     # PIN NOT CRACKED
     # ========================================================
@@ -1887,7 +1718,6 @@ with tab_people:
             """
         )
 
-
     # ========================================================
     # ZEPHYR SECURITY SABOTAGE
     # ========================================================
@@ -1902,7 +1732,6 @@ with tab_people:
             game.wordle_max_attempts
             - attempts_used
         )
-
 
         st.html(
             f"""
@@ -1944,7 +1773,6 @@ with tab_people:
             """
         )
 
-
         # ====================================================
         # CHALLENGE STATUS
         # ====================================================
@@ -1953,7 +1781,6 @@ with tab_people:
             "ATTEMPTS REMAINING",
             attempts_remaining
         )
-
 
         # ====================================================
         # PREVIOUS ATTEMPTS
@@ -1998,7 +1825,6 @@ with tab_people:
                     f"`{attempt}`  {display}"
                 )
 
-
         # ====================================================
         # WORDLE INPUT
         # ====================================================
@@ -2009,7 +1835,6 @@ with tab_people:
             key="wordle_guess",
             placeholder="_____",
         )
-
 
         if st.button(
             "🔓 SUBMIT SECURITY WORD",
@@ -2022,7 +1847,6 @@ with tab_people:
                     guess
                 )
             )
-
 
             # -----------------------------------------------
             # CORRECT
@@ -2042,7 +1866,6 @@ with tab_people:
 
                 st.rerun()
 
-
             # -----------------------------------------------
             # CONTINUE
             # -----------------------------------------------
@@ -2054,7 +1877,6 @@ with tab_people:
             ):
 
                 st.rerun()
-
 
             # -----------------------------------------------
             # FAILED
@@ -2073,18 +1895,15 @@ with tab_people:
 
                 st.rerun()
 
-
             else:
 
                 st.warning(
                     str(result)
                 )
 
-
         st.caption(
             "A successful solution is required to unlock interrogation."
         )
-
 
     # ========================================================
     # FAILED SECURITY CHALLENGE
@@ -2121,7 +1940,6 @@ with tab_people:
             """
         )
 
-
         st.divider()
 
         st.info(
@@ -2129,7 +1947,6 @@ with tab_people:
             "The security sabotage does not remove "
             "any physical evidence."
         )
-
 
     # ========================================================
     # FULLY UNLOCKED
@@ -2143,13 +1960,11 @@ with tab_people:
             "The trick is figuring out whether it matters."
         )
 
-
         question_bank = getattr(
             case,
             "QUESTION_BANK",
             {}
         )
-
 
         for character in case.CHARACTERS:
 
@@ -2157,12 +1972,10 @@ with tab_people:
                 character
             )
 
-
             with st.expander(
                 f"🧑 {character} — "
                 f"{profile.get('role', 'Unknown role')}"
             ):
-
 
                 st.html(
                     '<div class="suspect-card">'
@@ -2180,11 +1993,9 @@ with tab_people:
                     '</div>'
                 )
 
-
                 asked_data = game.asked.get(
                     character
                 )
-
 
                 # =================================================
                 # ALREADY QUESTIONED
@@ -2201,11 +2012,9 @@ with tab_people:
                         ""
                     )
 
-
                     st.markdown(
                         "**Statement collected:**"
                     )
-
 
                     st.html(
                         '<div class="statement-card">'
@@ -2218,12 +2027,10 @@ with tab_people:
                         '</div>'
                     )
 
-
                     st.info(
                         "You have already questioned this person. "
                         "Study their statement against the evidence."
                     )
-
 
                 # =================================================
                 # NOT QUESTIONED
@@ -2259,7 +2066,6 @@ with tab_people:
                                 )
                             )
 
-
                             if success:
 
                                 st.rerun()
@@ -2269,7 +2075,6 @@ with tab_people:
                                 st.warning(
                                     str(answer)
                                 )
-
 
                     else:
 
@@ -2288,89 +2093,84 @@ with tab_accuse:
         "⚖️ Final Accusation"
     )
 
-    st.warning(
-        "Once you submit an accusation, "
-        "the investigation ends."
-    )
+    # If case already ended, don't show the accusation form again
+    if game.game_over:
 
-    st.write(
-        "Don't accuse someone simply because they lied. "
-        "Accuse the person whose statements and actions "
-        "connect to the actual incident."
-    )
+        st.html(
+            """
+            <div class="result-open">
 
+                <h2>
+                    CASE CLOSED
+                </h2>
 
-    suspect = st.selectbox(
-        "Who is the Mole?",
-        case.CHARACTERS,
-        key="final_suspect",
-    )
+                <p>
+                    You have already submitted your final accusation.
+                </p>
 
+                <p>
+                    Open the
+                    <b>📁 RESULT</b>
+                    tab to view the final outcome.
+                </p>
 
-    st.divider()
-
-
-    st.subheader(
-        "What convinced you?"
-    )
-
-
-    evidence_options = []
-
-
-    clue_labels = {
-
-        "lab_acrostic":
-            "🧪 Laboratory note",
-
-        "storage_riddle":
-            "📦 Storage riddle",
-
-        "cafeteria_pin":
-            "🥤 Cafeteria restocking receipt",
-    }
-
-
-    # ========================================================
-    # PHYSICAL CLUES
-    # ========================================================
-
-    for clue in getattr(
-        game.evidence,
-        "clues_found",
-        []
-    ):
-
-        label = clue_labels.get(
-            clue,
-            str(clue)
+            </div>
+            """
         )
 
-        if label not in evidence_options:
+    else:
 
-            evidence_options.append(
-                label
-            )
-
-
-    # ========================================================
-    # STATEMENTS
-    # ========================================================
-
-    for character in case.CHARACTERS:
-
-        statements = get_statement_data(
-            character
+        st.warning(
+            "Once you submit an accusation, "
+            "the investigation ends."
         )
 
+        st.write(
+            "Don't accuse someone simply because they lied. "
+            "Accuse the person whose statements and actions "
+            "connect to the actual incident."
+        )
 
-        for question_key in statements:
+        suspect = st.selectbox(
+            "Who is the Mole?",
+            case.CHARACTERS,
+            key="final_suspect",
+        )
 
-            label = (
-                f"🗣️ {character}: "
-                f"{get_question_text(question_key)}"
+        st.divider()
+
+        st.subheader(
+            "What convinced you?"
+        )
+
+        evidence_options = []
+
+        clue_labels = {
+
+            "lab_acrostic":
+                "🧪 Laboratory note",
+
+            "storage_riddle":
+                "📦 Storage riddle",
+
+            "cafeteria_pin":
+                "🥤 Cafeteria restocking receipt",
+        }
+
+        # ========================================================
+        # PHYSICAL CLUES
+        # ========================================================
+
+        for clue in getattr(
+            game.evidence,
+            "clues_found",
+            []
+        ):
+
+            label = clue_labels.get(
+                clue,
+                str(clue)
             )
-
 
             if label not in evidence_options:
 
@@ -2378,106 +2178,126 @@ with tab_accuse:
                     label
                 )
 
+        # ========================================================
+        # STATEMENTS
+        # ========================================================
 
-    if evidence_options:
+        for character in case.CHARACTERS:
 
-        selected_evidence = st.multiselect(
-            "Select the clues/statements "
-            "that support your accusation",
-            evidence_options,
-            key="final_evidence",
-        )
-
-    else:
-
-        selected_evidence = []
-
-        st.info(
-            "You haven't collected any evidence yet."
-        )
-
-
-    st.divider()
-
-
-    st.subheader(
-        "Your Reasoning"
-    )
-
-
-    reasoning = st.text_area(
-        "Build your case",
-        placeholder=(
-            "Explain why the evidence points to this person..."
-        ),
-        height=180,
-        key="final_reasoning",
-    )
-
-
-    st.divider()
-
-
-    if st.button(
-        "🔨 SUBMIT FINAL ACCUSATION",
-        type="primary",
-        use_container_width=True,
-        disabled=not game.can_act(),
-    ):
-
-        if not selected_evidence:
-
-            st.error(
-                "A detective needs evidence. "
-                "Select at least one piece of evidence."
+            statements = get_statement_data(
+                character
             )
 
-        elif not reasoning.strip():
+            for question_key in statements:
 
-            st.error(
-                "Explain your reasoning before "
-                "closing the case."
+                label = (
+                    f"🗣️ {character}: "
+                    f"{get_question_text(question_key)}"
+                )
+
+                if label not in evidence_options:
+
+                    evidence_options.append(
+                        label
+                    )
+
+        if evidence_options:
+
+            selected_evidence = st.multiselect(
+                "Select the clues/statements "
+                "that support your accusation",
+                evidence_options,
+                key="final_evidence",
             )
 
         else:
 
-            st.session_state.final_evidence_saved = (
-                selected_evidence.copy()
+            selected_evidence = []
+
+            st.info(
+                "You haven't collected any evidence yet."
             )
 
-            st.session_state.final_reasoning_saved = (
-                reasoning.strip()
-            )
+        st.divider()
 
+        st.subheader(
+            "Your Reasoning"
+        )
 
-            success, result = (
-                game.make_accusation(
-                    suspect
+        reasoning = st.text_area(
+            "Build your case",
+            placeholder=(
+                "Explain why the evidence points to this person..."
+            ),
+            height=180,
+            key="final_reasoning",
+        )
+
+        st.divider()
+
+        if st.button(
+            "🔨 SUBMIT FINAL ACCUSATION",
+            type="primary",
+            use_container_width=True,
+            disabled=not game.can_act(),
+        ):
+
+            if not selected_evidence:
+
+                st.error(
+                    "A detective needs evidence. "
+                    "Select at least one piece of evidence."
                 )
-            )
 
+            elif not reasoning.strip():
 
-            if success:
-
-                st.rerun()
+                st.error(
+                    "Explain your reasoning before "
+                    "closing the case."
+                )
 
             else:
 
-                st.error(
-                    str(result)
+                st.session_state.final_evidence_saved = (
+                    selected_evidence.copy()
                 )
 
+                st.session_state.final_reasoning_saved = (
+                    reasoning.strip()
+                )
+
+                success, result = (
+                    game.make_accusation(
+                        suspect
+                    )
+                )
+
+                if success:
+
+                    st.rerun()
+
+                else:
+
+                    st.error(
+                        str(result)
+                    )
+
+
 # ============================================================
-# FINAL RESULT
+# FINAL RESULT TAB
 # ============================================================
 
 with tab_result:
+
+    # ========================================================
+    # CASE STILL OPEN
+    # ========================================================
 
     if not game.game_over:
 
         st.html(
             """
-            <div class="verdict-box">
+            <div class="result-open">
 
                 <h1>CASE STILL OPEN</h1>
 
@@ -2497,6 +2317,10 @@ with tab_result:
         st.info(
             "Return to the ⚖️ ACCUSATION tab when you are ready."
         )
+
+    # ========================================================
+    # CASE FINISHED
+    # ========================================================
 
     else:
 
@@ -2525,6 +2349,10 @@ with tab_result:
                 """
             )
 
+            st.success(
+                "✓ Your accusation was correct."
+            )
+
         # ====================================================
         # CASE NOT SOLVED
         # ====================================================
@@ -2549,10 +2377,13 @@ with tab_result:
                 """
             )
 
+            st.error(
+                "✗ Your accusation was incorrect."
+            )
+
             st.warning(
                 f"The real Mole was **{case.MOLE}**."
             )
-
 
         # ====================================================
         # INVESTIGATION REPORT
@@ -2587,7 +2418,6 @@ with tab_result:
                 statement_count()
             )
 
-
         # ====================================================
         # ACCUSATION
         # ====================================================
@@ -2602,7 +2432,6 @@ with tab_result:
             f"**Suspect:** {game.accused}"
         )
 
-
         if game.result == "win":
 
             st.success(
@@ -2614,7 +2443,6 @@ with tab_result:
             st.error(
                 "✗ Incorrect accusation."
             )
-
 
         # ====================================================
         # SELECTED EVIDENCE
@@ -2638,7 +2466,6 @@ with tab_result:
                     '</span>'
                 )
 
-
         # ====================================================
         # REASONING
         # ====================================================
@@ -2656,7 +2483,6 @@ with tab_result:
                 f'{safe_html(st.session_state.final_reasoning_saved)}'
                 '</div>'
             )
-
 
         # ====================================================
         # NEW CASE
