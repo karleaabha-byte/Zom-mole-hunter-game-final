@@ -1576,11 +1576,10 @@ with tab_rooms:
 
                         if success:
 
+                            # game.py decides whether the hidden Storage
+                            # evidence exists. Do not overwrite that result.
                             game.storage_riddle_solved = True
 
-                            # GameState already decided whether the physical
-                            # Storage evidence exists for this case.
-                            # Do not overwrite that hidden result here.
                             st.session_state.storage_code_result = (
                                 "correct"
                             )
@@ -1606,8 +1605,631 @@ with tab_rooms:
                                             "breeze",
                                             "storage riddle discovered",
                                         )
-                                    )
-                                ]
+                                    )]
+
+                            st.rerun()
+
+                        # -----------------------------------------
+                        # INCORRECT CODE
+                        # -----------------------------------------
+
+                        else:
+
+                            st.session_state.storage_code_result = (
+                                "incorrect"
+                            )
+
+                            st.rerun()
+
+                # =================================================
+                # STORAGE RESULT DISPLAY
+                # ONLY ONE DISPLAY LOCATION
+                # =================================================
+
+                if (
+                    room == "Storage"
+                    and st.session_state.storage_code_result
+                    == "correct"
+                ):
+
+                    st.success(
+                        "✓ CODE CORRECT"
+                    )
+
+                    if game.storage_evidence_found:
+                        st.info(
+                            "🔎 Storage evidence FOUND. "
+                            "A ventilation override was recorded "
+                            "at 11:50 PM."
+                        )
+
+                elif (
+                    room == "Storage"
+                    and st.session_state.storage_code_result
+                    == "incorrect"
+                ):
+
+                    st.error(
+                        "✗ CODE INCORRECT"
+                    )
+
+                # =================================================
+                # CAFETERIA PIN
+                # =================================================
+
+                if room == "Cafeteria":
+
+                    st.divider()
+
+                    st.markdown(
+                        "**🔐 Crack the Employee PIN**"
+                    )
+
+                    # ------------------------------------------------
+                    # PIN RESULT
+                    # DISPLAYED ONLY ONCE
+                    # ------------------------------------------------
+
+                    if (
+                        st.session_state.pin_result
+                        == "incorrect"
+                    ):
+
+                        st.error(
+                            "✗ PIN INCORRECT"
+                        )
+
+                    elif (
+                        st.session_state.pin_result
+                        == "correct"
+                        and game.pin_cracked
+                    ):
+
+                        st.success(
+                            "✓ PIN CORRECT — PIN CRACKED"
+                        )
+
+                    # ------------------------------------------------
+                    # PIN ALREADY CRACKED
+                    # ------------------------------------------------
+
+                    if game.pin_cracked:
+
+                        # --------------------------------------------
+                        # SECURITY CHALLENGE ACTIVE
+                        # --------------------------------------------
+
+                        if game.security_challenge_active:
+
+                            st.html(
+                                """
+                                <div class="security-box">
+
+                                    <div class="security-title">
+                                        🔐 SECONDARY SECURITY LOCK
+                                    </div>
+
+                                    <div class="security-warning">
+                                        ADDITIONAL VERIFICATION REQUIRED
+                                    </div>
+
+                                    <p>
+                                        Restricted employee access has
+                                        triggered a secondary security
+                                        protocol.
+                                    </p>
+
+                                    <p>
+                                        <b>
+                                            Interrogation access remains locked.
+                                        </b>
+                                    </p>
+
+                                </div>
+                                """
+                            )
+
+                        # --------------------------------------------
+                        # FULL ACCESS
+                        # --------------------------------------------
+
+                        else:
+
+                            st.html(
+                                """
+                                <div class="unlock-box">
+
+                                    <div class="unlock-title">
+                                        🔓 RESTRICTED ACCESS GRANTED
+                                    </div>
+
+                                    <p>
+                                        The employee record linked to
+                                        the restocking log has been
+                                        unlocked.
+                                    </p>
+
+                                    <p>
+                                        <b>ACCESS RECORD:</b>
+                                        The restocking cycle was initiated
+                                        using an authorized employee
+                                        credential.
+                                    </p>
+
+                                    <p>
+                                        The system confirms that the
+                                        credential belonged to an employee
+                                        scheduled for the night shift.
+                                    </p>
+
+                                    <p>
+                                        <b>
+                                            INTERROGATION SYSTEM: ONLINE
+                                        </b>
+                                    </p>
+
+                                </div>
+                                """
+                            )
+
+                    # ------------------------------------------------
+                    # PIN NOT CRACKED
+                    # ------------------------------------------------
+
+                    else:
+
+                        pin_guess = st.text_input(
+                            "Enter four digits",
+                            max_chars=4,
+                            key="pin_guess",
+                            disabled=not game.can_act(),
+                        )
+
+                        if st.button(
+                            "🔓 VERIFY PIN",
+                            key="verify_pin",
+                            use_container_width=True,
+                            disabled=not game.can_act(),
+                        ):
+
+                            pin_correct = game.attempt_pin(
+                                pin_guess
+                            )
+
+                            if pin_correct:
+
+                                st.session_state.pin_result = (
+                                    "correct"
+                                )
+
+                            else:
+
+                                st.session_state.pin_result = (
+                                    "incorrect"
+                                )
+
+                            st.rerun()
+
+                        st.caption(
+                            "PIN attempts are unlimited. "
+                            "Use the evidence to determine the correct code."
+                        )
+
+            # =================================================
+            # NOT INVESTIGATED
+            # =================================================
+
+            else:
+
+                if st.button(
+                    f"🔎 Investigate {room}",
+                    key=f"visit_{room}",
+                    disabled=not game.can_act(),
+                    use_container_width=True,
+                ):
+
+                    success, payload = (
+                        game.visit_room(room)
+                    )
+
+                    if success:
+
+                        st.rerun()
+
+                    else:
+
+                        st.warning(
+                            str(payload)
+                        )
+
+
+# ============================================================
+# INTERROGATIONS
+# ============================================================
+
+with tab_people:
+
+    st.subheader(
+        "🗣️ Interrogation Room"
+    )
+
+    # ========================================================
+    # PIN NOT CRACKED
+    # ========================================================
+
+    if not game.pin_cracked:
+
+        st.html(
+            """
+            <div class="locked-box">
+
+                <div class="locked-title">
+                    🔒 INTERROGATION SYSTEM LOCKED
+                </div>
+
+                <p>
+                    Employee interrogation records are protected
+                    behind restricted access.
+                </p>
+
+                <p>
+                    You must crack the Cafeteria employee PIN
+                    before you can question anyone.
+                </p>
+
+                <p>
+                    <b>
+                        Locate the Cafeteria and recover the
+                        missing digits.
+                    </b>
+                </p>
+
+            </div>
+            """
+        )
+
+    # ========================================================
+    # ZEPHYR SECURITY SABOTAGE
+    # ========================================================
+
+    elif game.security_challenge_active:
+
+        attempts_used = len(
+            game.wordle_attempts
+        )
+
+        attempts_remaining = (
+            game.wordle_max_attempts
+            - attempts_used
+        )
+
+        st.html(
+            f"""
+            <div class="security-box">
+
+                <div class="security-title">
+                    🔐 SECONDARY SECURITY LOCK
+                </div>
+
+                <div class="security-warning">
+                    INTERROGATION ACCESS DENIED
+                </div>
+
+                <p>
+                    The restricted employee system has detected
+                    an additional authentication requirement.
+                </p>
+
+                <p>
+                    Someone has modified the security protocol.
+                </p>
+
+                <p>
+                    Complete the emergency verification challenge
+                    to continue.
+                </p>
+
+                <div class="security-word">
+                    _ _ _ _ _
+                </div>
+
+                <p>
+                    <b>
+                        FIVE-LETTER SECURITY WORD
+                    </b>
+                </p>
+
+            </div>
+            """
+        )
+
+        # ====================================================
+        # CHALLENGE STATUS
+        # ====================================================
+
+        st.metric(
+            "ATTEMPTS REMAINING",
+            attempts_remaining
+        )
+
+        # ====================================================
+        # PREVIOUS ATTEMPTS
+        # ====================================================
+
+        if game.wordle_attempts:
+
+            st.markdown(
+                "### Previous Attempts"
+            )
+
+            for attempt in game.wordle_attempts:
+
+                result = ["⬛"] * 5
+                remaining = list(game.wordle_answer)
+
+                # Green first
+                for index, letter in enumerate(attempt):
+                    if letter == game.wordle_answer[index]:
+                        result[index] = "🟩"
+                        remaining[index] = None
+
+                # Yellow only when an unused matching letter remains
+                for index, letter in enumerate(attempt):
+                    if result[index] == "🟩":
+                        continue
+
+                    if letter in remaining:
+                        result[index] = "🟨"
+                        remaining[remaining.index(letter)] = None
+
+                display = "".join(result)
+
+                st.write(
+                    f"`{attempt}`  {display}"
+                )
+
+        # ====================================================
+        # WORDLE INPUT
+        # ====================================================
+
+        guess = st.text_input(
+            "Enter a 5-letter word",
+            max_chars=5,
+            key="wordle_guess",
+            placeholder="_____",
+        )
+
+        if st.button(
+            "🔓 SUBMIT SECURITY WORD",
+            key="submit_wordle",
+            use_container_width=True,
+        ):
+
+            success, result = (
+                game.submit_wordle(
+                    guess
+                )
+            )
+
+            # -----------------------------------------------
+            # CORRECT
+            # -----------------------------------------------
+
+            if (
+                isinstance(result, dict)
+                and result.get("status")
+                == "CORRECT"
+            ):
+
+                st.success(
+                    "🔓 SECURITY LOCK DEFEATED."
+                )
+
+                st.balloons()
+
+                st.rerun()
+
+            # -----------------------------------------------
+            # CONTINUE
+            # -----------------------------------------------
+
+            elif (
+                isinstance(result, dict)
+                and result.get("status")
+                == "CONTINUE"
+            ):
+
+                st.rerun()
+
+            # -----------------------------------------------
+            # FAILED
+            # -----------------------------------------------
+
+            elif (
+                isinstance(result, dict)
+                and result.get("status")
+                == "FAILED"
+            ):
+
+                st.error(
+                    "🔐 SECURITY LOCK FAILED. "
+                    "Interrogation access has been blocked."
+                )
+
+                st.rerun()
+
+            else:
+
+                st.warning(
+                    str(result)
+                )
+
+        st.caption(
+            "A successful solution is required to unlock interrogation."
+        )
+
+    # ========================================================
+    # FAILED SECURITY CHALLENGE
+    # ========================================================
+
+    elif game.wordle_failed:
+
+        st.html(
+            """
+            <div class="locked-box">
+
+                <div class="locked-title">
+                    🔐 INTERROGATION ACCESS BLOCKED
+                </div>
+
+                <p>
+                    The secondary security protocol could not
+                    be defeated.
+                </p>
+
+                <p>
+                    The employee interrogation system remains
+                    inaccessible.
+                </p>
+
+                <p>
+                    <b>
+                        You must rely on the physical evidence,
+                        timeline and case records.
+                    </b>
+                </p>
+
+            </div>
+            """
+        )
+
+        st.divider()
+
+        st.info(
+            "The case is still solvable. "
+            "The security sabotage does not remove "
+            "any physical evidence."
+        )
+
+    # ========================================================
+    # FULLY UNLOCKED
+    # ========================================================
+
+    else:
+
+        st.write(
+            "The interrogation system is online. "
+            "Everyone has something to say. "
+            "The trick is figuring out whether it matters."
+        )
+
+        question_bank = getattr(
+            case,
+            "QUESTION_BANK",
+            {}
+        )
+
+        for character in case.CHARACTERS:
+
+            profile = get_profile(
+                character
+            )
+
+            with st.expander(
+                f"🧑 {character} — "
+                f"{profile.get('role', 'Unknown role')}"
+            ):
+
+                st.html(
+                    '<div class="suspect-card">'
+                    f'<strong>{safe_html(character)}</strong>'
+                    '<br>'
+                    '<span style="color:#c9a961;font-size:.8rem;">'
+                    f'{safe_html(profile.get("role", "Unknown role"))}'
+                    ' • '
+                    f'{safe_html(profile.get("location", "Unknown"))}'
+                    '</span>'
+                    '<br><br>'
+                    f'{safe_html(profile.get("description", ""))}'
+                    '<br><br>'
+                    f'<i>{safe_html(profile.get("personality", ""))}</i>'
+                    '</div>'
+                )
+
+                asked_data = game.asked.get(
+                    character
+                )
+
+                # =================================================
+                # ALREADY QUESTIONED
+                # =================================================
+
+                if asked_data:
+
+                    question_key = asked_data.get(
+                        "question"
+                    )
+
+                    answer = asked_data.get(
+                        "answer",
+                        ""
+                    )
+
+                    st.markdown(
+                        "**Statement collected:**"
+                    )
+
+                    st.html(
+                        '<div class="statement-card">'
+                        '<div class="statement-question">'
+                        f'Q: {safe_html(get_question_text(question_key))}'
+                        '</div>'
+                        '<div class="statement-answer">'
+                        f'“{safe_html(answer)}”'
+                        '</div>'
+                        '</div>'
+                    )
+
+                    st.info(
+                        "You have already questioned this person. "
+                        "Study their statement against the evidence."
+                    )
+
+                # =================================================
+                # NOT QUESTIONED
+                # =================================================
+
+                else:
+
+                    if (
+                        isinstance(
+                            question_bank,
+                            dict
+                        )
+                        and question_bank
+                    ):
+
+                        q_key = "alibi"
+
+                        st.info(
+                            "Where were you at 11:50 PM?"
+                        )
+
+                        if st.button(
+                            f"💬 Ask {character}",
+                            key=f"ask_{character}",
+                            disabled=not game.can_act(),
+                            use_container_width=True,
+                        ):
+
+                            success, answer = (
+                                game.ask_question(
+                                    character,
+                                    q_key
+                                )
+                            )
+
+                            if success:
 
                                 st.rerun()
 
