@@ -1618,57 +1618,65 @@ with tab_rooms:
                     clue
                 )
 
-
                 # =================================================
-                # STORAGE RIDDLE ANSWER
+                # STORAGE BREEZE RIDDLE
                 # =================================================
 
-                if room == "Storage" and not game.storage_riddle_solved:
+                if room == "Storage":
 
-                    st.divider()
-                    st.markdown("**🧩 Solve the Storage Riddle**")
+                    if not game.storage_riddle_solved:
 
-                    storage_answer = st.text_input(
-                        "What is the answer?",
-                        key="storage_riddle_answer"
-                    )
+                        st.divider()
+                        st.markdown("**🌬️ Solve the Storage riddle**")
 
-                    if st.button(
-                        "🔎 SUBMIT RIDDLE ANSWER",
-                        key="submit_storage_riddle",
-                        use_container_width=True,
-                    ):
-
-                        success, result = game.solve_storage_riddle(
-                            storage_answer
+                        storage_answer = st.text_input(
+                            "What is the answer?",
+                            key="storage_answer",
+                            max_chars=30,
+                            disabled=not game.can_act(),
                         )
 
-                        if success and result == "FOUND":
-                            st.success(
-                                "🔎 Storage evidence FOUND! "
-                                "The ventilation override record is recoverable."
+                        if st.button(
+                            "VERIFY BREEZE",
+                            key="verify_breeze",
+                            use_container_width=True,
+                            disabled=not game.can_act(),
+                        ):
+
+                            success, message = (
+                                game.solve_storage_riddle(
+                                    storage_answer
+                                )
                             )
-                        elif success and result == "NOT_FOUND":
-                            st.warning(
-                                "❌ Storage evidence NOT FOUND. "
-                                "The 50/50 search failed to recover it."
-                            )
-                        else:
-                            st.error(str(result))
 
-                        st.rerun()
+                            if success:
+                                st.success(message)
+                            else:
+                                st.error(message)
 
+                            st.rerun()
 
-                elif room == "Storage" and game.storage_riddle_solved:
-
-                    if game.storage_evidence_found:
-                        st.success(
-                            "🔎 Storage evidence FOUND — Wordle will activate after the PIN is cracked."
-                        )
                     else:
-                        st.warning(
-                            "❌ Storage evidence NOT FOUND — Wordle will be skipped."
+
+                        st.success(
+                            "✓ BREEZE solved — Cafeteria PIN clue unlocked."
                         )
+
+                        if game.ventilation_override_found:
+
+                            ventilation_clue = (
+                                case.get_ventilation_override_clue()
+                            )
+
+                            st.info(
+                                ventilation_clue["lines"][0]
+                            )
+
+                        else:
+
+                            st.info(
+                                "No ventilation override record was recovered."
+                            )
 
 
                 # =================================================
@@ -1776,11 +1784,21 @@ with tab_rooms:
                         )
 
 
+                        if not game.cafeteria_evidence_found:
+
+                            st.warning(
+                                "Solve BREEZE in Storage and investigate "
+                                "the Cafeteria before entering the PIN."
+                            )
+
                         if st.button(
                             "🔓 VERIFY PIN",
                             key="verify_pin",
                             use_container_width=True,
-                            disabled=not game.can_act(),
+                            disabled=(
+                                not game.can_act()
+                                or not game.cafeteria_evidence_found
+                            ),
                         ):
 
                             pin_correct = game.attempt_pin(
@@ -2236,11 +2254,18 @@ with tab_people:
                         and question_bank
                     ):
 
-                        q_key = "alibi"
-
-                        st.info(
-                            "Where were you at 11:50 PM?"
+                        question_keys = list(
+                            question_bank.keys()
                         )
+
+
+                        q_key = st.selectbox(
+                            "Question",
+                            options=question_keys,
+                            format_func=get_question_text,
+                            key=f"question_{character}",
+                        )
+
 
                         if st.button(
                             f"💬 Ask {character}",
@@ -2325,6 +2350,9 @@ with tab_accuse:
 
         "cafeteria_pin":
             "🥤 Cafeteria restocking receipt",
+
+        "ventilation_override":
+            "🌬️ Ventilation override record",
     }
 
 
@@ -2463,3 +2491,4 @@ with tab_accuse:
                 st.error(
                     str(result)
                 )
+
