@@ -1,5 +1,3 @@
-
-
 # ============================================================
 # CASE BASICS
 # ============================================================
@@ -313,29 +311,6 @@ STORAGE_CLUE = {
 
 
 # ============================================================
-# SABOTAGED STORAGE CLUE
-# ============================================================
-
-STORAGE_SABOTAGED_RIDDLE = {
-    "title": "THE STORAGE RIDDLE — CORRUPTED",
-
-    "riddle": [
-        "I move without feet and speak without a voice.",
-        "I can be felt but never held.",
-        "I shake every leaf and can fill a ship's sails.",
-        "I may pass through a room without opening its door.",
-        "I can be gentle enough to cool you,",
-        "or violent enough to tear through a forest.",
-        "What am I?"
-    ],
-
-    "note": (
-        "Some of the original storage terminal data "
-        "appears to have been corrupted."
-    )
-}
-
-# ============================================================
 # CAFETERIA CLUE
 # ============================================================
 
@@ -365,42 +340,6 @@ CAFETERIA_CLUE = {
 
 
 # ============================================================
-# SABOTAGED CAFETERIA CLUE
-# ============================================================
-
-CAFETERIA_SABOTAGED_CLUE = {
-    "title": "RESTOCKING LOG — MACHINE #3 — TAMPERED",
-
-    # Keep the visible ??19 fragment so the case remains solvable.
-    "job": "SUPPLY COORDINATOR",
-
-    "pin_digits": [
-        "?",
-        "?",
-        "1",
-        "9"
-    ],
-
-    "redacted": [
-        True,
-        True,
-        False,
-        False
-    ],
-
-    "note": (
-        "The receipt has been tampered with, but the final two PIN "
-        "digits remain visible: 19."
-    ),
-
-    "description": (
-        "Someone tried to damage the employee record. The useful "
-        "PIN fragment survived the sabotage."
-    )
-}
-
-
-# ============================================================
 # HELPER FUNCTIONS
 # ============================================================
 
@@ -408,17 +347,11 @@ def get_lab_clue():
     return LAB_CLUE
 
 
-def get_storage_clue(decision=None):
-    if decision == "sabotage":
-        return STORAGE_SABOTAGED_RIDDLE
-
+def get_storage_clue():
     return STORAGE_CLUE
 
 
-def get_cafeteria_clue(decision=None):
-    if decision == "sabotage":
-        return CAFETERIA_SABOTAGED_CLUE
-
+def get_cafeteria_clue():
     return CAFETERIA_CLUE
 
 
