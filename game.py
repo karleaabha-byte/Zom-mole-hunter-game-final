@@ -1,6 +1,7 @@
 
 import case
 import random
+import time
 
 from ai_agent import MoleAI
 from evidence import EvidenceBoard
@@ -108,6 +109,8 @@ class GameState:
         self.wordle_max_attempts = WORDLE_MAX_ATTEMPTS
 
         self.wordle_failed = False
+        self.wordle_started_at = None
+        self.wordle_time_limit = 60
 
         self.storage_riddle_solved = False
         self.storage_evidence_found = False
@@ -126,7 +129,10 @@ class GameState:
 
     def _log(self, text):
 
-        self.log.append(text)
+        if not hasattr(self, "log") or not isinstance(self.log, list):
+            self.log = []
+
+        self.log.append(str(text))
 
 
     def _clamp_suspicion(self):
@@ -147,37 +153,48 @@ class GameState:
     def visit_room(self, room):
 
         if not self.can_act():
+
             return (
                 False,
                 "No actions remaining."
             )
 
         if room in self.visited_rooms:
+
             return (
                 False,
                 f"You've already investigated the {room}."
             )
 
         if room not in ROOMS:
+
             return (
                 False,
                 "Unknown room."
             )
 
+
         # ====================================================
         # LABORATORY
         # ====================================================
+
         if room == "Laboratory":
+
             clue = case.get_lab_clue()
+
             self.evidence.add_clue(
                 "lab_acrostic"
             )
+
             self.room_decisions[room] = "neutral"
+
 
         # ====================================================
         # STORAGE
         # ====================================================
+
         elif room == "Storage":
+
             clue = case.get_storage_clue()
             self.room_decisions[room] = "awaiting_riddle"
             self._log(
@@ -185,10 +202,13 @@ class GameState:
                 "to determine whether the evidence can be recovered."
             )
 
+
         # ====================================================
         # CAFETERIA
         # ====================================================
+
         elif room == "Cafeteria":
+
             clue = case.get_cafeteria_clue()
             self.room_decisions[room] = "pin_required"
             self._log(
@@ -196,9 +216,20 @@ class GameState:
                 "Recover the missing PIN digits."
             )
 
+
+        # ----------------------------------------------------
+        # CLAMP SUSPICION
+        # ----------------------------------------------------
+
         self._clamp_suspicion()
 
+
+        # ----------------------------------------------------
+        # SAVE INVESTIGATION
+        # ----------------------------------------------------
+
         self.visited_rooms[room] = clue
+
         self.actions_used += 1
 
         self._log(
@@ -209,6 +240,62 @@ class GameState:
             True,
             clue
         )
+
+
+    # ========================================================
+    # STORAGE RIDDLE
+    # ========================================================
+
+    def solve_storage_riddle(self, answer):
+
+        if not self.can_act():
+            return (
+                False,
+                "No actions remaining."
+            )
+
+        if self.storage_riddle_solved:
+            return (
+                True,
+                "The Storage riddle has already been solved."
+            )
+
+        if "Storage" not in self.visited_rooms:
+            return (
+                False,
+                "Investigate the Storage room first."
+            )
+
+        answer = str(answer).strip().upper()
+
+        self.actions_used += 1
+
+        if answer == "BREEZE":
+
+            self.storage_riddle_solved = True
+            self.storage_evidence_found = True
+            self.storage_roll = 1
+
+            self._log(
+                "✅ Storage riddle solved. Hidden evidence recovered."
+            )
+
+            return (
+                True,
+                "BREEZE"
+            )
+
+        self.storage_roll = 0
+
+        self._log(
+            "❌ Incorrect Storage riddle answer."
+        )
+
+        return (
+            False,
+            "Incorrect answer."
+        )
+
 
     # ========================================================
     # PIN
