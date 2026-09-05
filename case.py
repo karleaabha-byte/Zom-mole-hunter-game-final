@@ -84,7 +84,14 @@ BACKGROUND = {
                 "11:49 PM",
                 "Corridor cameras went offline."
             ),
-
+            (
+                "11:50 PM",
+                "The Storage ventilation system was overridden."
+            ),
+            (
+                "11:50 PM",
+                "The cafeteria vending machine began an unscheduled restock."
+            ),
             (
                 "11:52 PM",
                 "The Laboratory centrifuge was manually interrupted."
@@ -295,9 +302,7 @@ STORAGE_CLUE = {
         "I can carry a whisper farther than the person who spoke it.",
         "Sailors welcome me when I am gentle, but fear what I become when I grow wild.",
         "What am I?"
-    ],
-
-
+    ]
 }
 
 
