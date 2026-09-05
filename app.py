@@ -1619,7 +1619,7 @@ with tab_rooms:
                 )
 
                 # =================================================
-                # STORAGE BREEZE RIDDLE
+                # STORAGE RIDDLE
                 # =================================================
 
                 if room == "Storage":
@@ -1627,56 +1627,23 @@ with tab_rooms:
                     if not game.storage_riddle_solved:
 
                         st.divider()
-                        st.markdown("**🌬️ Solve the Storage riddle**")
+                        st.markdown("**🌬️ Solve the riddle**")
 
                         storage_answer = st.text_input(
-                            "What is the answer?",
+                            "Answer",
                             key="storage_answer",
                             max_chars=30,
                             disabled=not game.can_act(),
                         )
 
-                        if st.button(
-                            "VERIFY BREEZE",
-                            key="verify_breeze",
-                            use_container_width=True,
-                            disabled=not game.can_act(),
-                        ):
-
-                            success, message = (
-                                game.solve_storage_riddle(
-                                    storage_answer
-                                )
-                            )
-
+                        if storage_answer.strip().upper() == case.STORAGE_ANSWER:
+                            success, _ = game.solve_storage_riddle(storage_answer)
                             if success:
-                                st.success(message)
-                            else:
-                                st.error(message)
+                                st.rerun()
 
-                            st.rerun()
-
-                    else:
-
-                        st.success(
-                            "✓ BREEZE solved — Cafeteria PIN clue unlocked."
-                        )
-
-                        if game.ventilation_override_found:
-
-                            ventilation_clue = (
-                                case.get_ventilation_override_clue()
-                            )
-
-                            st.info(
-                                ventilation_clue["lines"][0]
-                            )
-
-                        else:
-
-                            st.info(
-                                "No ventilation override record was recovered."
-                            )
+                    if game.ventilation_override_found:
+                        ventilation_clue = case.get_ventilation_override_clue()
+                        st.info(ventilation_clue["lines"][0])
 
 
                 # =================================================
@@ -1787,8 +1754,7 @@ with tab_rooms:
                         if not game.cafeteria_evidence_found:
 
                             st.warning(
-                                "Solve BREEZE in Storage and investigate "
-                                "the Cafeteria before entering the PIN."
+                                "More evidence is required before the PIN can be entered."
                             )
 
                         if st.button(
