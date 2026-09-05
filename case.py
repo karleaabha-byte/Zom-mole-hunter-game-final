@@ -297,9 +297,7 @@ STORAGE_CLUE = {
         "What am I?"
     ],
 
-    "note": (
-        "A ventilation override was recorded at 11:50 PM."
-    )
+
 }
 
 
