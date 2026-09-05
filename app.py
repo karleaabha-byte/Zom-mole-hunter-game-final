@@ -656,20 +656,24 @@ def statement_count():
 def clean_case_log():
 
     """
-    Removes player-facing references to the internal
-    random/50-50 evidence mechanic.
-
-    The underlying game logic can still contain those
-    messages, but they are never displayed to the player.
+    Removes player-facing references to:
+    - internal 50/50 mechanics
+    - random/chance mechanics
+    - the actual BREEZE answer
+    - messages that reveal the storage riddle answer
     """
 
     hidden_terms = (
         "50/50",
         "50-50",
+        "50–50",
         "random",
         "chance",
         "probability",
         "roll",
+        "solve breeze",
+        "breeze",
+        "storage riddle discovered",
     )
 
     cleaned = []
@@ -677,9 +681,10 @@ def clean_case_log():
     for entry in getattr(game, "log", []):
 
         text = str(entry)
+        lower_text = text.lower()
 
         if any(
-            term in text.lower()
+            term in lower_text
             for term in hidden_terms
         ):
             continue
@@ -1583,10 +1588,9 @@ with tab_rooms:
 
                         if success:
 
-                            # The old 50/50 mechanic should no
-                            # longer affect what the player sees.
-                            # A correct BREEZE answer means the
-                            # Storage evidence is found.
+                            # A correct answer ALWAYS means
+                            # the Storage evidence is recovered.
+                            # The internal 50/50 mechanic is ignored.
 
                             game.storage_riddle_solved = True
                             game.storage_evidence_found = True
@@ -1595,18 +1599,8 @@ with tab_rooms:
                                 "correct"
                             )
 
-                            st.success(
-                                "✓ CODE CORRECT"
-                            )
-
-                            st.info(
-                                "🔎 Storage evidence FOUND. "
-                                "A ventilation override was recorded "
-                                "at 11:50 PM."
-                            )
-
-                            # Clean any old player-facing
-                            # 50/50/random message from the log.
+                            # Remove any old hidden mechanic
+                            # messages from the actual game log.
                             if hasattr(game, "log"):
 
                                 game.log = [
@@ -1617,13 +1611,19 @@ with tab_rooms:
                                         for term in (
                                             "50/50",
                                             "50-50",
+                                            "50–50",
                                             "random",
                                             "chance",
                                             "probability",
                                             "roll",
+                                            "solve breeze",
+                                            "breeze",
+                                            "storage riddle discovered",
                                         )
                                     )
                                 ]
+
+                            st.rerun()
 
                         # -----------------------------------------
                         # INCORRECT CODE
@@ -1635,29 +1635,37 @@ with tab_rooms:
                                 "incorrect"
                             )
 
-                            st.error(
-                                "✗ CODE INCORRECT"
-                            )
+                            st.rerun()
+
+                # =================================================
+                # STORAGE RESULT DISPLAY
+                # =================================================
+
+                if (
+                    room == "Storage"
+                    and st.session_state.storage_code_result
+                    == "correct"
+                ):
+
+                    st.success(
+                        "✓ CODE CORRECT"
+                    )
+
+                    st.info(
+                        "🔎 Storage evidence FOUND. "
+                        "A ventilation override was recorded "
+                        "at 11:50 PM."
+                    )
 
                 elif (
                     room == "Storage"
-                    and game.storage_riddle_solved
+                    and st.session_state.storage_code_result
+                    == "incorrect"
                 ):
 
-                    if (
-                        st.session_state.storage_code_result
-                        == "correct"
-                    ):
-
-                        st.success(
-                            "✓ CODE CORRECT"
-                        )
-
-                        st.info(
-                            "🔎 Storage evidence FOUND. "
-                            "A ventilation override was recorded "
-                            "at 11:50 PM."
-                        )
+                    st.error(
+                        "✗ CODE INCORRECT"
+                    )
 
                 # =================================================
                 # CAFETERIA PIN
@@ -1672,14 +1680,32 @@ with tab_rooms:
                     )
 
                     # ------------------------------------------------
-                    # PIN ALREADY CRACKED
+                    # SHOW THE MOST RECENT PIN RESULT ONLY ONCE
                     # ------------------------------------------------
 
-                    if game.pin_cracked:
+                    if (
+                        st.session_state.pin_result
+                        == "incorrect"
+                    ):
+
+                        st.error(
+                            "✗ PIN INCORRECT"
+                        )
+
+                    elif (
+                        st.session_state.pin_result
+                        == "correct"
+                    ):
 
                         st.success(
                             "✓ PIN CORRECT — PIN CRACKED"
                         )
+
+                    # ------------------------------------------------
+                    # PIN ALREADY CRACKED
+                    # ------------------------------------------------
+
+                    if game.pin_cracked:
 
                         # --------------------------------------------
                         # SECURITY CHALLENGE ACTIVE
@@ -1788,43 +1814,15 @@ with tab_rooms:
                                     "correct"
                                 )
 
-                                st.success(
-                                    "✓ PIN CORRECT — "
-                                    "RESTRICTED ACCESS UNLOCKED"
-                                )
-
                             else:
 
                                 st.session_state.pin_result = (
                                     "incorrect"
                                 )
 
-                                st.error(
-                                    "✗ PIN INCORRECT"
-                                )
-
-                        # ------------------------------------------------
-                        # KEEP RESULT DIRECTLY BELOW INPUT
-                        # ------------------------------------------------
-
-                        if (
-                            st.session_state.pin_result
-                            == "correct"
-                            and not game.pin_cracked
-                        ):
-
-                            st.success(
-                                "✓ PIN CORRECT"
-                            )
-
-                        elif (
-                            st.session_state.pin_result
-                            == "incorrect"
-                        ):
-
-                            st.error(
-                                "✗ PIN INCORRECT"
-                            )
+                            # Rerun so the stored result is displayed
+                            # exactly once below the PIN section.
+                            st.rerun()
 
                         st.caption(
                             "PIN attempts are unlimited. "
