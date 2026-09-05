@@ -1323,60 +1323,80 @@ with st.sidebar:
 
 
 # ============================================================
-# CASE INTRO
-# ============================================================
-
-st.markdown(
-    '<div class="case-file">',
-    unsafe_allow_html=True
-)
-
-case_intro = getattr(
-    case,
-    "CASE_INTRO",
-    "A mysterious incident has occurred."
-)
-
-st.markdown(
-    case_intro
-)
-
-st.markdown(
-    "</div>",
-    unsafe_allow_html=True
-)
-
-
-# ============================================================
 # MAIN GAME TABS
 # ============================================================
 
-(
-    tab_background,
-    tab_rooms,
-    tab_people,
-    tab_accuse,
-    tab_result,
-) = st.tabs(
-    [
-        "📋 BACKGROUND",
-        "🏚️ CRIME SCENES",
-        "🗣️ INTERROGATIONS",
-        "⚖️ ACCUSATION",
-        "📁 RESULT",
-    ]
-)
+# ============================================================
+# PAGE NAVIGATION
+# ============================================================
+# These are page-style navigation controls rather than st.tabs(),
+# so the NEXT PAGE buttons below can actually change the page.
+
+if "current_page" not in st.session_state:
+    st.session_state.current_page = "background"
+
+page_options = {
+    "background": "📋 BACKGROUND",
+    "rooms": "🏚️ CRIME SCENES",
+    "people": "🗣️ INTERROGATIONS",
+    "accuse": "⚖️ ACCUSATION",
+    "result": "📁 RESULT",
+}
+
+nav_columns = st.columns(5)
+
+for column, (page_key, page_label) in zip(
+    nav_columns,
+    page_options.items()
+):
+    with column:
+        if st.button(
+            page_label,
+            key=f"top_nav_{page_key}",
+            use_container_width=True,
+            type=(
+                "primary"
+                if st.session_state.current_page == page_key
+                else "secondary"
+            ),
+        ):
+            st.session_state.current_page = page_key
+            st.rerun()
 
 
 # ============================================================
 # BACKGROUND TAB
 # ============================================================
 
-with tab_background:
+if st.session_state.current_page == "background":
 
     st.subheader(
         "THE NIGHT SHIFT INCIDENT"
     )
+
+    st.markdown(
+        """
+        **12:18 AM.**
+
+        The research facility should have been asleep.
+
+        Instead, the emergency lights are flashing, a laboratory alarm is screaming through the corridors, and six experimental filter cartridges have disappeared from Storage.
+
+        A centrifuge stopped unexpectedly.
+
+        A vial was found broken.
+
+        And three minutes of corridor camera footage are missing.
+
+        Five employees were still inside the facility.
+
+        Someone is lying.
+
+        Your job is to find out **whose lie matters.**
+        """
+    )
+
+    st.divider()
 
     st.write(
         "These are the established facts of the case. "
@@ -1471,11 +1491,22 @@ with tab_background:
         )
 
 
+    st.divider()
+
+    if st.button(
+        "➡️ GO TO CRIME SCENES",
+        key="next_to_rooms",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "rooms"
+        st.rerun()
+
+
 # ============================================================
 # CRIME SCENES
 # ============================================================
 
-with tab_rooms:
+if st.session_state.current_page == "rooms":
 
     st.subheader(
         "🏚️ Crime Scenes"
@@ -1841,11 +1872,22 @@ with tab_rooms:
                         )
 
 
+    st.divider()
+
+    if st.button(
+        "➡️ GO TO INTERROGATIONS",
+        key="next_to_people",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "people"
+        st.rerun()
+
+
 # ============================================================
 # INTERROGATIONS
 # ============================================================
 
-with tab_people:
+if st.session_state.current_page == "people":
 
     st.subheader(
         "🗣️ Interrogation Room"
@@ -2251,11 +2293,22 @@ with tab_people:
                         )
 
 
+    st.divider()
+
+    if st.button(
+        "➡️ GO TO ACCUSATION",
+        key="next_to_accuse",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "accuse"
+        st.rerun()
+
+
 # ============================================================
 # ACCUSATION
 # ============================================================
 
-with tab_accuse:
+if st.session_state.current_page == "accuse":
 
     st.subheader(
         "⚖️ Final Accusation"
@@ -2458,11 +2511,22 @@ with tab_accuse:
                     )
 
 
+    st.divider()
+
+    if st.button(
+        "➡️ GO TO RESULT",
+        key="next_to_result",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "result"
+        st.rerun()
+
+
 # ============================================================
 # FINAL RESULT TAB
 # ============================================================
 
-with tab_result:
+if st.session_state.current_page == "result":
 
     # ========================================================
     # CASE STILL OPEN
@@ -2673,3 +2737,19 @@ with tab_result:
             reset_case()
 
             st.rerun()
+
+# ============================================================
+# RESULT PAGE NAVIGATION
+# ============================================================
+
+if st.session_state.current_page == "result":
+
+    st.divider()
+
+    if st.button(
+        "↩️ BACK TO BACKGROUND",
+        key="back_to_background",
+        use_container_width=True,
+    ):
+        st.session_state.current_page = "background"
+        st.rerun()
