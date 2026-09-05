@@ -3,7 +3,6 @@ Game state and rules engine for Zom-Mole Hunter
 """
 
 import case
-import random
 
 from ai_agent import MoleAI
 from evidence import EvidenceBoard
@@ -31,8 +30,6 @@ WORDLE_MAX_ATTEMPTS = 6
 class GameState:
 
     def __init__(self, seed=None):
-
-        self.rng = random.Random(seed)
 
         # ----------------------------------------------------
         # AI
@@ -104,9 +101,15 @@ class GameState:
 
         self.wordle_failed = False
 
+        # ----------------------------------------------------
+        # STORAGE / VENTILATION EVIDENCE
+        # ----------------------------------------------------
+
         self.storage_riddle_solved = False
-        self.storage_evidence_found = False
-        self.storage_roll = None
+        self.ventilation_override_found = False
+        self.ventilation_roll = None
+
+        # Cafeteria is available only after BREEZE is solved.
         self.cafeteria_evidence_found = False
 
 
@@ -184,13 +187,11 @@ class GameState:
 
         elif room == "Storage":
 
+            # The BREEZE riddle is always shown.
+            # Solving it unlocks the Cafeteria PIN clue.
             clue = case.get_storage_clue()
-            self.room_decisions[room] = "awaiting_riddle"
-            self._log(
-                "📦 Storage riddle discovered. Solve BREEZE "
-                "to determine whether the evidence can be recovered."
-            )
 
+            self.room_decisions[room] = "neutral"
 
         # ====================================================
         # CAFETERIA
@@ -198,16 +199,21 @@ class GameState:
 
         else:
 
-            clue = case.get_cafeteria_clue()
+            if not self.storage_riddle_solved:
 
-            self.cafeteria_evidence_found = True
+                return (
+                    False,
+                    "Solve the BREEZE riddle in Storage first."
+                )
+
+            clue = case.get_cafeteria_clue()
 
             self.evidence.add_clue(
                 "cafeteria_pin"
             )
 
+            self.cafeteria_evidence_found = True
             self.room_decisions[room] = "neutral"
-
 
         # ----------------------------------------------------
         # CLAMP SUSPICION
@@ -240,33 +246,45 @@ class GameState:
 
     def solve_storage_riddle(self, answer):
 
+        if not self.can_act():
+            return False, "The case is already closed."
+
         if "Storage" not in self.visited_rooms:
             return False, "Investigate Storage first."
 
         if self.storage_riddle_solved:
-            return True, "FOUND" if self.storage_evidence_found else "NOT_FOUND"
+            return True, "BREEZE has already been solved."
 
-        if str(answer).strip().upper() != "BREEZE":
+        if str(answer).strip().upper() != case.STORAGE_ANSWER:
             self.actions_used += 1
             self.suspicion += 2
             self._clamp_suspicion()
-            self._log("❌ Incorrect Storage riddle answer.")
-            return False, "Incorrect answer. Try again."
+            self._log("❌ The Storage riddle answer was incorrect.")
+            return False, "Incorrect answer."
 
         self.storage_riddle_solved = True
         self.actions_used += 1
-        self.storage_roll = self.rng.random() < 0.5
-        self.storage_evidence_found = self.storage_roll
 
-        if self.storage_evidence_found:
-            self.evidence.add_clue("storage_riddle")
-            self.room_decisions["Storage"] = "evidence_found"
-            self._log("🔎 Storage evidence FOUND (50/50 result).")
-            return True, "FOUND"
+        # The ventilation override is the ONLY 50/50 evidence roll.
+        self.ventilation_roll = self.mole_ai.rng.random() < 0.5
+        self.ventilation_override_found = self.ventilation_roll
 
-        self.room_decisions["Storage"] = "evidence_not_found"
-        self._log("❌ Storage evidence NOT FOUND (50/50 result).")
-        return True, "NOT_FOUND"
+        self.evidence.add_clue("storage_riddle")
+
+        if self.ventilation_override_found:
+            self.evidence.add_clue("ventilation_override")
+            result = (
+                "BREEZE is correct. The Cafeteria PIN clue is now "
+                "accessible. You also found a ventilation record."
+            )
+        else:
+            result = (
+                "BREEZE is correct. The Cafeteria PIN clue is now "
+                "accessible."
+            )
+
+        self._log("🔎 Storage riddle solved.")
+        return True, result
 
 
     # ========================================================
@@ -319,33 +337,20 @@ class GameState:
             )
 
 
-            # Wordle is controlled by the hidden evidence state.
-            # Cafeteria evidence is always present, so Wordle activates
-            # exactly when BOTH Storage and Cafeteria evidence exist.
+            # Wordle is available only when BOTH evidence states exist.
             activate_challenge = (
-                self.storage_evidence_found
+                self.ventilation_override_found
                 and self.cafeteria_evidence_found
             )
 
             if activate_challenge:
-
                 self.security_challenge_active = True
-
                 self.security_challenge_complete = False
-
-                self._log(
-                    "🚨 SECONDARY SECURITY LOCK ACTIVATED."
-                )
-
+                self._log("🚨 SECONDARY SECURITY LOCK ACTIVATED.")
             else:
-
                 self.security_challenge_active = False
-
                 self.security_challenge_complete = True
-
-                self._log(
-                    "🔓 INTERROGATION SYSTEM UNLOCKED."
-                )
+                self._log("🔓 INTERROGATION SYSTEM UNLOCKED.")
 
             return True
 
@@ -658,7 +663,8 @@ class GameState:
             answer = case.get_answer(
                 character,
                 question_key,
-                tell_truth=tell_truth
+                tell_truth=tell_truth,
+                ventilation_found=self.ventilation_override_found
             )
 
             lied = not tell_truth
@@ -890,3 +896,4 @@ class GameState:
             "mole_ai":
                 self.mole_ai.stats()
         }
+
