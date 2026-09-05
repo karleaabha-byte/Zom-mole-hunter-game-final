@@ -885,6 +885,13 @@ def render_clue(
                 clue["riddle"]
             )
 
+        # Show ventilation override note only if evidence was found
+        if game.storage_riddle_solved and game.storage_evidence_found:
+
+            st.info(
+                "A ventilation override was recorded at 11:50 PM."
+            )
+
         if clue.get("note"):
 
             st.info(
@@ -1661,10 +1668,9 @@ with tab_rooms:
 
                 elif room == "Storage" and game.storage_riddle_solved:
 
-                    if game.storage_evidence_found:
-                        st.success(
-                            "🔎 Storage evidence FOUND — Wordle will activate after the PIN is cracked."
-                        )
+                    # After solving the riddle, the player sees
+                    # nothing unless evidence was found.
+                    # Discovery is silent.
 
 
                 # =================================================
