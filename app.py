@@ -2466,3 +2466,209 @@ with tab_accuse:
                 st.error(
                     str(result)
                 )
+
+# ============================================================
+# FINAL RESULT
+# ============================================================
+
+with tab_result:
+
+    if not game.game_over:
+
+        st.html(
+            """
+            <div class="verdict-box">
+
+                <h1>CASE STILL OPEN</h1>
+
+                <h2>
+                    THE MOLE HAS NOT BEEN IDENTIFIED
+                </h2>
+
+                <p>
+                    Complete your investigation and submit
+                    your final accusation.
+                </p>
+
+            </div>
+            """
+        )
+
+        st.info(
+            "Return to the ⚖️ ACCUSATION tab when you are ready."
+        )
+
+    else:
+
+        # ====================================================
+        # CASE SOLVED
+        # ====================================================
+
+        if game.result == "win":
+
+            st.html(
+                """
+                <div class="verdict-box">
+
+                    <h1>CASE SOLVED</h1>
+
+                    <h2>
+                        THE MOLE HAS BEEN IDENTIFIED
+                    </h2>
+
+                    <p>
+                        Your accusation was correct.
+                        The evidence led you to the right suspect.
+                    </p>
+
+                </div>
+                """
+            )
+
+        # ====================================================
+        # CASE NOT SOLVED
+        # ====================================================
+
+        else:
+
+            st.html(
+                """
+                <div class="verdict-box">
+
+                    <h1>CASE NOT SOLVED</h1>
+
+                    <h2>
+                        THE MOLE GOT AWAY
+                    </h2>
+
+                    <p>
+                        Your accusation did not identify the Mole.
+                    </p>
+
+                </div>
+                """
+            )
+
+            st.warning(
+                f"The real Mole was **{case.MOLE}**."
+            )
+
+
+        # ====================================================
+        # INVESTIGATION REPORT
+        # ====================================================
+
+        st.divider()
+
+        st.subheader(
+            "📋 INVESTIGATION REPORT"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.metric(
+                "Actions Used",
+                game.actions_used
+            )
+
+        with col2:
+
+            st.metric(
+                "Scenes Searched",
+                len(game.visited_rooms)
+            )
+
+        with col3:
+
+            st.metric(
+                "Statements",
+                statement_count()
+            )
+
+
+        # ====================================================
+        # ACCUSATION
+        # ====================================================
+
+        st.divider()
+
+        st.subheader(
+            "⚖️ YOUR ACCUSATION"
+        )
+
+        st.write(
+            f"**Suspect:** {game.accused}"
+        )
+
+
+        if game.result == "win":
+
+            st.success(
+                "✓ Correct accusation."
+            )
+
+        else:
+
+            st.error(
+                "✗ Incorrect accusation."
+            )
+
+
+        # ====================================================
+        # SELECTED EVIDENCE
+        # ====================================================
+
+        if st.session_state.final_evidence_saved:
+
+            st.divider()
+
+            st.subheader(
+                "🔎 EVIDENCE YOU SELECTED"
+            )
+
+            for evidence in (
+                st.session_state.final_evidence_saved
+            ):
+
+                st.html(
+                    '<span class="clue-chip">'
+                    f'✓ {safe_html(evidence)}'
+                    '</span>'
+                )
+
+
+        # ====================================================
+        # REASONING
+        # ====================================================
+
+        if st.session_state.final_reasoning_saved:
+
+            st.divider()
+
+            st.subheader(
+                "🧠 YOUR REASONING"
+            )
+
+            st.html(
+                '<div class="quote-box">'
+                f'{safe_html(st.session_state.final_reasoning_saved)}'
+                '</div>'
+            )
+
+
+        # ====================================================
+        # NEW CASE
+        # ====================================================
+
+        st.divider()
+
+        if st.button(
+            "🔄 START A NEW CASE",
+            use_container_width=True
+        ):
+
+            reset_case()
+
+            st.rerun()
