@@ -85,8 +85,10 @@ BACKGROUND = {
                 "Corridor cameras went offline."
             ),
             (
-                "11:50 PM",
-                "The Storage ventilation system was overridden."
+                
+    "11:50 PM",
+    "The cafeteria vending machine began an unscheduled restock."
+
             ),
 
             (
