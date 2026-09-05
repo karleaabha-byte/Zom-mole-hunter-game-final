@@ -88,10 +88,7 @@ BACKGROUND = {
                 "11:50 PM",
                 "The Storage ventilation system was overridden."
             ),
-            (
-                "11:50 PM",
-                "The cafeteria vending machine began an unscheduled restock."
-            ),
+
             (
                 "11:52 PM",
                 "The Laboratory centrifuge was manually interrupted."
