@@ -480,12 +480,24 @@ st.markdown(
        LOG
        ======================================================== */
 
+    .case-log-scroll {
+        height: 280px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 10px 12px;
+        background: #21152d;
+        border: 1px solid #5a3d8a;
+        border-radius: 7px;
+        scrollbar-width: thin;
+    }
+
     .log-entry {
         font-family: monospace;
         font-size: 0.85rem;
         color: #c9a961;
-        padding: 5px 0;
+        padding: 7px 0;
         border-bottom: 1px dotted #5a3d8a;
+        line-height: 1.4;
     }
 
     /* ========================================================
@@ -549,6 +561,12 @@ if "final_evidence_saved" not in st.session_state:
 
 if "final_reasoning_saved" not in st.session_state:
     st.session_state.final_reasoning_saved = ""
+
+if "pin_result" not in st.session_state:
+    st.session_state.pin_result = None
+
+if "storage_code_result" not in st.session_state:
+    st.session_state.storage_code_result = None
 
 
 game = st.session_state.game
@@ -632,6 +650,46 @@ def statement_count():
 
 
 # ============================================================
+# CASE LOG FILTER
+# ============================================================
+
+def clean_case_log():
+
+    """
+    Removes player-facing references to the internal
+    random/50-50 evidence mechanic.
+
+    The underlying game logic can still contain those
+    messages, but they are never displayed to the player.
+    """
+
+    hidden_terms = (
+        "50/50",
+        "50-50",
+        "random",
+        "chance",
+        "probability",
+        "roll",
+    )
+
+    cleaned = []
+
+    for entry in getattr(game, "log", []):
+
+        text = str(entry)
+
+        if any(
+            term in text.lower()
+            for term in hidden_terms
+        ):
+            continue
+
+        cleaned.append(text)
+
+    return cleaned
+
+
+# ============================================================
 # LAB RENDERER
 # ============================================================
 
@@ -660,6 +718,7 @@ def render_lab_note(lines):
             )
 
             if item.get("letter"):
+
                 text = (
                     f'{item["letter"]}'
                     f'{text}'
@@ -888,10 +947,23 @@ def render_clue(
                 clue["riddle"]
             )
 
-        if game.storage_riddle_solved and game.storage_evidence_found:
+        # ----------------------------------------------------
+        # STORAGE CODE RESULT
+        # ----------------------------------------------------
+
+        if (
+            game.storage_riddle_solved
+            and game.storage_evidence_found
+        ):
+
+            st.success(
+                "✓ CODE CORRECT"
+            )
 
             st.info(
-                "A ventilation override was recorded at 11:50 PM."
+                "🔎 Storage evidence FOUND. "
+                "A ventilation override was recorded "
+                "at 11:50 PM."
             )
 
         if clue.get("note"):
@@ -963,6 +1035,10 @@ def reset_case():
 
     st.session_state.final_reasoning_saved = ""
 
+    st.session_state.pin_result = None
+
+    st.session_state.storage_code_result = None
+
     keys_to_remove = [
         "final_reasoning",
         "final_suspect",
@@ -970,6 +1046,7 @@ def reset_case():
         "pin_guess",
         "start_detective_name",
         "wordle_guess",
+        "storage_riddle_answer",
     ]
 
     for key in keys_to_remove:
@@ -1215,17 +1292,24 @@ with st.sidebar:
         "📋 CASE LOG"
     ):
 
-        if game.log:
+        visible_log = clean_case_log()
 
-            for entry in reversed(
-                game.log[-10:]
-            ):
+        if visible_log:
 
-                st.html(
+            st.html(
+                '<div class="case-log-scroll">'
+                +
+                "".join(
                     '<div class="log-entry">'
                     f'• {safe_html(entry)}'
                     '</div>'
+                    for entry in reversed(
+                        visible_log[-20:]
+                    )
                 )
+                +
+                '</div>'
+            )
 
         else:
 
@@ -1465,7 +1549,10 @@ with tab_rooms:
                 # STORAGE RIDDLE ANSWER
                 # =================================================
 
-                if room == "Storage" and not game.storage_riddle_solved:
+                if (
+                    room == "Storage"
+                    and not game.storage_riddle_solved
+                ):
 
                     st.divider()
 
@@ -1484,35 +1571,93 @@ with tab_rooms:
                         use_container_width=True,
                     ):
 
-                        success, result = game.solve_storage_riddle(
-                            storage_answer
+                        success, result = (
+                            game.solve_storage_riddle(
+                                storage_answer
+                            )
                         )
 
-                        if success and result == "FOUND":
+                        # -----------------------------------------
+                        # CORRECT CODE
+                        # -----------------------------------------
+
+                        if success:
+
+                            # The old 50/50 mechanic should no
+                            # longer affect what the player sees.
+                            # A correct BREEZE answer means the
+                            # Storage evidence is found.
+
+                            game.storage_riddle_solved = True
+                            game.storage_evidence_found = True
+
+                            st.session_state.storage_code_result = (
+                                "correct"
+                            )
 
                             st.success(
-                                "🔎 Storage evidence FOUND! "
-                                "The ventilation override record is recoverable."
+                                "✓ CODE CORRECT"
                             )
 
-                        elif success and result == "NOT_FOUND":
-
-                            st.warning(
-                                "❌ Storage evidence NOT FOUND. "
-                                "The 50/50 search failed to recover it."
+                            st.info(
+                                "🔎 Storage evidence FOUND. "
+                                "A ventilation override was recorded "
+                                "at 11:50 PM."
                             )
+
+                            # Clean any old player-facing
+                            # 50/50/random message from the log.
+                            if hasattr(game, "log"):
+
+                                game.log = [
+                                    entry
+                                    for entry in game.log
+                                    if not any(
+                                        term in str(entry).lower()
+                                        for term in (
+                                            "50/50",
+                                            "50-50",
+                                            "random",
+                                            "chance",
+                                            "probability",
+                                            "roll",
+                                        )
+                                    )
+                                ]
+
+                        # -----------------------------------------
+                        # INCORRECT CODE
+                        # -----------------------------------------
 
                         else:
 
-                            st.error(
-                                str(result)
+                            st.session_state.storage_code_result = (
+                                "incorrect"
                             )
 
-                        st.rerun()
+                            st.error(
+                                "✗ CODE INCORRECT"
+                            )
 
-                elif room == "Storage" and game.storage_riddle_solved:
+                elif (
+                    room == "Storage"
+                    and game.storage_riddle_solved
+                ):
 
-                    pass
+                    if (
+                        st.session_state.storage_code_result
+                        == "correct"
+                    ):
+
+                        st.success(
+                            "✓ CODE CORRECT"
+                        )
+
+                        st.info(
+                            "🔎 Storage evidence FOUND. "
+                            "A ventilation override was recorded "
+                            "at 11:50 PM."
+                        )
 
                 # =================================================
                 # CAFETERIA PIN
@@ -1526,15 +1671,19 @@ with tab_rooms:
                         "**🔐 Crack the Employee PIN**"
                     )
 
+                    # ------------------------------------------------
+                    # PIN ALREADY CRACKED
+                    # ------------------------------------------------
+
                     if game.pin_cracked:
 
                         st.success(
-                            "🔓 PIN CRACKED"
+                            "✓ PIN CORRECT — PIN CRACKED"
                         )
 
-                        # ----------------------------------------
+                        # --------------------------------------------
                         # SECURITY CHALLENGE ACTIVE
-                        # ----------------------------------------
+                        # --------------------------------------------
 
                         if game.security_challenge_active:
 
@@ -1565,6 +1714,10 @@ with tab_rooms:
                                 </div>
                                 """
                             )
+
+                        # --------------------------------------------
+                        # FULL ACCESS
+                        # --------------------------------------------
 
                         else:
 
@@ -1605,6 +1758,10 @@ with tab_rooms:
                                 """
                             )
 
+                    # ------------------------------------------------
+                    # PIN NOT CRACKED
+                    # ------------------------------------------------
+
                     else:
 
                         pin_guess = st.text_input(
@@ -1627,18 +1784,47 @@ with tab_rooms:
 
                             if pin_correct:
 
+                                st.session_state.pin_result = (
+                                    "correct"
+                                )
+
                                 st.success(
-                                    "🔓 PIN CRACKED. "
-                                    "Restricted access unlocked."
+                                    "✓ PIN CORRECT — "
+                                    "RESTRICTED ACCESS UNLOCKED"
                                 )
 
                             else:
 
-                                st.error(
-                                    "❌ Incorrect PIN."
+                                st.session_state.pin_result = (
+                                    "incorrect"
                                 )
 
-                            st.rerun()
+                                st.error(
+                                    "✗ PIN INCORRECT"
+                                )
+
+                        # ------------------------------------------------
+                        # KEEP RESULT DIRECTLY BELOW INPUT
+                        # ------------------------------------------------
+
+                        if (
+                            st.session_state.pin_result
+                            == "correct"
+                            and not game.pin_cracked
+                        ):
+
+                            st.success(
+                                "✓ PIN CORRECT"
+                            )
+
+                        elif (
+                            st.session_state.pin_result
+                            == "incorrect"
+                        ):
+
+                            st.error(
+                                "✗ PIN INCORRECT"
+                            )
 
                         st.caption(
                             "PIN attempts are unlimited. "
@@ -2093,7 +2279,10 @@ with tab_accuse:
         "⚖️ Final Accusation"
     )
 
-    # If case already ended, don't show the accusation form again
+    # ========================================================
+    # CASE ALREADY ENDED
+    # ========================================================
+
     if game.game_over:
 
         st.html(
@@ -2117,6 +2306,10 @@ with tab_accuse:
             </div>
             """
         )
+
+    # ========================================================
+    # ACCUSATION FORM
+    # ========================================================
 
     else:
 
