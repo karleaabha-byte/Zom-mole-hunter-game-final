@@ -1,6 +1,3 @@
-
-
-
 class EvidenceBoard:
 
     def __init__(self):
