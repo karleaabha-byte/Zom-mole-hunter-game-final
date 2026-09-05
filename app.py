@@ -1671,6 +1671,7 @@ with tab_rooms:
                     # After solving the riddle, the player sees
                     # nothing unless evidence was found.
                     # Discovery is silent.
+                    pass
 
 
                 # =================================================
